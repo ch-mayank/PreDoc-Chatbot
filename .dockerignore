@@ -1,0 +1,31 @@
+# Version Control
+.git
+.gitignore
+
+# Python Cache & Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+
+# Local Virtual Environments
+.venv/
+venv/
+env/
+
+# IDEs & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets & Environment Files (Crucial for Security)
+.env
+*.pem
+*.key
+
+# Local Data / Persistent Storage (Kept separate in config directory)
+storage/
+data/

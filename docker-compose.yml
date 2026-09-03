@@ -1,0 +1,45 @@
+services:
+  app:
+    image: predoc-app:latest
+    ports:
+      - "8010:8010"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+    secrets:
+      - source: openrouter_key
+        mode: 0444
+      - source: admin_user
+        mode: 0444
+      - source: admin_pass
+        mode: 0444
+      - source: demo_api_key
+        mode: 0444
+    volumes:
+      - /mnt/data/work/work-config/PreDoc-Chatbot/storage:/app/storage
+      - /mnt/data/work/work-config/PreDoc-Chatbot/data:/app/data
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+    command: tunnel --url http://app:8010
+
+secrets:
+  openrouter_key:
+    external: true
+  admin_user:
+    external: true
+  admin_pass:
+    external: true
+  demo_api_key:
+    external: true
