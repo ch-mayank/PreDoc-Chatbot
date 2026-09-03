@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PreDoc-Chatbot Client</title>
-    <!-- Include Marked.js from CDN to parse markdown automatically -->
+    <!-- Marked.js turns the model's Markdown answer into readable HTML. -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
@@ -134,11 +134,12 @@
 </head>
 <body>
 
-    <!-- Professional Medical Disclaimer Banner -->
+    <!-- This warning stays visible because the chatbot is not a doctor. -->
     <div class="disclaimer-banner">
         <strong>Medical Disclaimer:</strong> PreDoc-Chatbot is an AI clinical decision support tool and is <strong>not</strong> a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified physician or healthcare provider for any medical concerns.
     </div>
 
+    <!-- The browser remembers the API key only while this page is open. -->
     <div class="card">
         <h2>🔒 Security Configuration</h2>
         <p style="font-size: 13px; color: #64748b; margin-top: 0;">(Authenticated via browser popup session)</p>
@@ -146,6 +147,7 @@
         <input type="text" id="apiKey" value="demo123456" placeholder="Paste api key here">
     </div>
 
+    <!-- This is the simple question-and-answer part of the page. -->
     <div class="card">
         <h2>💬 PreDoc-Chatbot Clinical Query</h2>
         <label for="question">Ask a medical question:</label>
@@ -169,7 +171,7 @@
                 return;
             }
 
-            // Lock UI and show fast interactive loading state
+            // Prevent duplicate clicks while the server is working.
             submitBtn.disabled = true;
             submitBtn.textContent = "Processing query...";
             output.innerHTML = "<em>Querying secure RAG engine...</em>";
@@ -187,7 +189,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Render markdown instantly with marked.js
+                    // The backend sends Markdown; Marked.js displays it nicely.
                     output.innerHTML = marked.parse(data.answer);
                 } else {
                     output.innerHTML = `<span style="color: #dc2626;"><strong>Error ${response.status}:</strong> ${data.detail || JSON.stringify(data)}</span>`;
@@ -195,7 +197,7 @@
             } catch (error) {
                 output.innerHTML = `<span style="color: #dc2626;"><strong>Network Error:</strong> Could not reach server. Details: ${error.message}</span>`;
             } finally {
-                // Restore UI state
+                // Let the user submit another question, even after an error.
                 submitBtn.disabled = false;
                 submitBtn.textContent = "Submit Query";
             }
