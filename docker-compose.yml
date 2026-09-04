@@ -21,7 +21,9 @@ services:
         mode: 0444
       - source: admin_pass
         mode: 0444
-      - source: demo_api_key
+      - source: clinical_api_key
+        mode: 0444
+      - source: admin_api_key
         mode: 0444
     volumes:
       - /mnt/data/work/work-config/PreDoc-Chatbot/storage:/app/storage
@@ -49,5 +51,7 @@ secrets:
     external: true
   admin_pass:
     external: true
-  demo_api_key:
+  clinical_api_key:
+    external: true
+  admin_api_key:
     external: true

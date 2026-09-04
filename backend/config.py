@@ -48,7 +48,7 @@ def get_secret(secret_name: str, env_name: str, default: Optional[str] = None) -
 # 1. Administrator Role (Full access to /dashboard, /api/metrics, /api/system/status, and consultations)
 ADMIN_USER = get_secret("admin_user", "ADMIN_USER", "admin")
 ADMIN_PASS = get_secret("admin_pass", "ADMIN_PASS", "password")
-ADMIN_API_KEY = get_secret("admin_api_key", "ADMIN_API_KEY", "admin123456")
+ADMIN_API_KEY = get_secret("admin_api_key", "ADMIN_API_KEY", default=os.getenv("ADMIN_API_KEY", "")).strip()
 
 # 2. Clinician / Standard User Role (Access to / Consultation UI and /api/chat consultations)
 USER_USER = (
@@ -62,10 +62,11 @@ USER_PASS = (
     or "clinician123"
 )
 USER_API_KEY = (
-    get_secret("user_api_key", "USER_API_KEY", default="")
+    get_secret("clinical_api_key", "CLINICAL_API_KEY", default="")
+    or get_secret("user_api_key", "USER_API_KEY", default="")
     or get_secret("demo_api_key", "DEMO_API_KEY", default="")
-    or "demo123456"
-)
+    or os.getenv("CLINICAL_API_KEY", "")
+).strip()
 DEMO_API_KEY = USER_API_KEY  # Backward-compatible alias
 
 # 1. Primary OpenAPI Spec Endpoint Configuration

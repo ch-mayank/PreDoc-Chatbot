@@ -119,13 +119,12 @@ def verify_api_key(
     if ADMIN_API_KEY and (token == ADMIN_API_KEY or secrets.compare_digest(token, ADMIN_API_KEY)):
         return ADMIN_API_KEY
 
-    # 2. User / Demo API key
+    # 2. User / Clinical API key
     if (
-        token in [USER_API_KEY, DEMO_API_KEY, "demo123456"]
-        or (USER_API_KEY and secrets.compare_digest(token, USER_API_KEY))
+        (USER_API_KEY and secrets.compare_digest(token, USER_API_KEY))
         or (DEMO_API_KEY and secrets.compare_digest(token, DEMO_API_KEY))
     ):
-        return USER_API_KEY or "demo123456"
+        return USER_API_KEY or DEMO_API_KEY
 
     # 3. Server environment backend keys
     server_keys = [
