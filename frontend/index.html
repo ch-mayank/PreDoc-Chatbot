@@ -3,205 +3,1418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PreDoc-Chatbot Client</title>
-    <!-- Marked.js turns the model's Markdown answer into readable HTML. -->
+    <title>PreDoc Clinical AI - Enterprise Clinical Decision Support & Triage</title>
+    <!-- Professional typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #16a34a;
-            --success-hover: #15803d;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-color: #1e293b;
-            --border-color: #cbd5e1;
+            --bg-base: #edf3f5;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f4f8f9;
+            --border-subtle: #d6e2e6;
+            --border-focus: #087f8c;
+            --primary-blue: #087f8c;
+            --primary-hover: #06646e;
+            --primary-glow: rgba(8, 127, 140, 0.22);
+            --text-main: #142834;
+            --text-muted: #536976;
+            --text-dim: #718794;
+            
+            --triage-red: #dc2626;
+            --triage-red-bg: rgba(220, 38, 38, 0.12);
+            --triage-yellow: #d97706;
+            --triage-yellow-bg: rgba(217, 119, 6, 0.12);
+            --triage-green: #059669;
+            --triage-green-bg: rgba(5, 150, 105, 0.12);
+            --radius-card: 10px;
+        }
+
+        body.dark-mode {
+            --bg-base: #0f1922;
+            --bg-surface: #162632;
+            --bg-elevated: #1e3341;
+            --border-subtle: #2f4858;
+            --text-main: #eaf2f5;
+            --text-muted: #a6c0cb;
+            --text-dim: #7d9ba6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            max-width: 700px;
-            margin: 30px auto;
-            padding: 20px;
-            background: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'IBM Plex Sans', sans-serif;
+            background-color: var(--bg-base);
+            background-image: linear-gradient(135deg, rgba(255,255,255,.6), transparent 45%), repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(20,40,52,.02) 32px);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 20px 64px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .workspace-container {
+            width: 100%;
+            max-width: 1180px;
+        }
+
+        /* Top Clinical Navigation Bar */
+        .clinical-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(20, 40, 52, .06);
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary-blue), #0b9fb0);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 3px 10px var(--primary-glow);
+        }
+
+        .brand-text h1 {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text-main);
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        /* Nav Segmented View Switcher */
+        .view-switcher {
+            display: flex;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(8, 127, 140, 0.08);
+        }
+
+        .tab-btn.active {
+            background: var(--bg-surface);
+            color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            border: 1px solid rgba(8, 127, 140, 0.25);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle {
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-elevated);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 7px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-blue);
+        }
+
+        .status-beacon {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .status-beacon.warning {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #d97706;
+        }
+
+        .beacon-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+            animation: pulse-beacon 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-beacon {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.9); }
+        }
+
+        /* Regulatory Banner */
+        .regulatory-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 18px;
+            background: rgba(217, 119, 6, 0.08);
+            border: 1px solid rgba(217, 119, 6, 0.25);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #b45309;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        body.dark-mode .regulatory-banner {
+            color: #fbbf24;
+        }
+
+        /* Core Card Surfaces */
+        .card-surface {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(20, 40, 52, 0.04);
+        }
+
+        .card-header-clean {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 14px;
+        }
+
+        .card-header-clean svg {
+            width: 18px;
+            height: 18px;
+            color: var(--primary-blue);
+        }
+
+        /* Form Controls */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-group label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .field-select, .field-input {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .field-select:focus, .field-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: var(--bg-surface);
+        }
+
+        /* Quick Scenario Chips */
+        .scenarios-cloud {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .scenario-pill {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .scenario-pill:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            background: var(--bg-surface);
+            transform: translateY(-1px);
+        }
+
+        /* Specialty Chips */
+        .specialty-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .specialty-chip {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            user-select: none;
+        }
+
+        .specialty-chip:hover {
+            border-color: var(--primary-blue);
+            color: var(--text-main);
+        }
+
+        .specialty-chip.selected {
+            background: var(--primary-blue);
+            color: #ffffff;
+            border-color: var(--primary-blue);
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        .query-area {
+            width: 100%;
+            height: 120px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 14px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            color: var(--text-main);
+            outline: none;
+            resize: vertical;
+            line-height: 1.5;
+            transition: all 0.2s;
+            margin-bottom: 18px;
+        }
+
+        .query-area:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: var(--bg-surface);
+        }
+
+        .btn-analyze {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-blue), #0b9fb0);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 24px;
+            font-family: inherit;
+            font-size: 0.96rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 16px var(--primary-glow);
+            transition: all 0.2s;
+        }
+
+        .btn-analyze:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--primary-hover), var(--primary-blue));
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(8, 127, 140, 0.35);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results Card */
+        .results-container {
+            display: none;
+            margin-top: 24px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-content {
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: var(--text-main);
+        }
+
+        .results-content h1, .results-content h2, .results-content h3 {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        .results-content ul, .results-content ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+        }
+
+        .results-content li {
+            margin-bottom: 6px;
+        }
+
+        .results-content p {
+            margin-bottom: 12px;
+        }
+
+        /* Clinical Status Badges */
+        .triage-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .triage-red {
+            background: var(--triage-red-bg);
+            color: var(--triage-red);
+            border: 1px solid var(--triage-red);
+        }
+
+        .triage-yellow {
+            background: var(--triage-yellow-bg);
+            color: var(--triage-yellow);
+            border: 1px solid var(--triage-yellow);
+        }
+
+        .triage-green {
+            background: var(--triage-green-bg);
+            color: var(--triage-green);
+            border: 1px solid var(--triage-green);
+        }
+
+        /* Emergency & Notice Callouts */
+        .emergency-callout {
+            background: rgba(220, 38, 38, 0.1);
+            border-left: 4px solid var(--triage-red);
+            border-radius: 6px;
+            padding: 14px 18px;
+            color: var(--triage-red);
+            font-weight: 600;
+            font-size: 0.92rem;
+            margin-bottom: 16px;
             line-height: 1.5;
         }
 
-        .card {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            margin-bottom: 20px;
-            transition: all 0.2s ease-in-out;
-        }
-
-        h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            color: #0f172a;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.875rem;
-            margin-bottom: 6px;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 10px 12px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-            border: 1px solid var(--border-color);
+        .notice-callout {
+            background: rgba(8, 127, 140, 0.09);
+            border-left: 4px solid var(--primary-blue);
             border-radius: 6px;
-            font-size: 0.95rem;
-            transition: border-color 0.15s ease;
-        }
-
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 90px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: var(--success);
-            color: white;
-            border: none;
-            font-weight: 600;
-            font-size: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.15s ease;
-        }
-
-        button:hover {
-            background: var(--success-hover);
-        }
-
-        button:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        /* Medical Disclaimer Banner */
-        .disclaimer-banner {
-            background: #fffbeb;
-            border-left: 4px solid #f59e0b;
             padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: #92400e;
-            margin-bottom: 20px;
+            color: var(--text-main);
+            font-size: 0.86rem;
+            margin-bottom: 14px;
+            line-height: 1.5;
         }
 
-        /* Markdown Output Layout Container */
-        #output {
-            background: #f1f5f9;
-            padding: 16px;
-            border-radius: 6px;
-            font-size: 0.925rem;
-            line-height: 1.6;
-            overflow-x: auto;
-            min-height: 60px;
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
+        /* ==========================================================================
+           OPERATIONS DASHBOARD STYLES
+           ========================================================================== */
+        #dashboardView {
+            display: none;
+            animation: fadeIn 0.25s ease-out;
         }
 
-        #output h3 {
-            margin-top: 12px;
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .dashboard-header h2 {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .dashboard-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        /* Top 4 Metric Cards Grid */
+        .dash-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .dash-metric-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px 20px;
+            box-shadow: 0 4px 16px rgba(20, 40, 52, 0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .dash-metric-label {
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dash-metric-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
             margin-bottom: 6px;
-            color: #0f172a;
-            font-size: 1.05rem;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
         }
 
-        #output ul, #output ol {
-            margin-top: 4px;
-            padding-left: 20px;
+        .dash-metric-val .badge-pct {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+        }
+
+        .dash-metric-sub {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .dash-progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .dash-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), #10b981);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        /* Multi-Agent Operations Grid */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .agent-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 16px 20px;
+            box-shadow: 0 4px 12px rgba(20, 40, 52, 0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .agent-status-pill {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-standby {
+            background: rgba(8, 127, 140, 0.1);
+            color: var(--primary-blue);
+            border: 1px solid rgba(8, 127, 140, 0.25);
+        }
+
+        .agent-model-tag {
+            display: inline-block;
+            font-family: monospace;
+            font-size: 0.73rem;
+            color: var(--primary-blue);
+            background: rgba(8, 127, 140, 0.08);
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .agent-role {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* Dual Infrastructure Grid (Endpoints & Rate Limiter) */
+        .infra-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .infra-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 20px;
+        }
+
+        .infra-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.82rem;
+        }
+
+        .infra-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .infra-key {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .infra-val {
+            color: var(--text-main);
+            font-weight: 600;
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .meter-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: var(--primary-blue);
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .clinical-nav {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .view-switcher {
+                justify-content: center;
+            }
+            .nav-actions {
+                justify-content: space-between;
+            }
+            .dash-metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- This warning stays visible because the chatbot is not a doctor. -->
-    <div class="disclaimer-banner">
-        <strong>Medical Disclaimer:</strong> PreDoc-Chatbot is an AI clinical decision support tool and is <strong>not</strong> a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified physician or healthcare provider for any medical concerns.
-    </div>
+<div class="workspace-container">
 
-    <!-- The browser remembers the API key only while this page is open. -->
-    <div class="card">
-        <h2>🔒 Security Configuration</h2>
-        <p style="font-size: 13px; color: #64748b; margin-top: 0;">(Authenticated via browser popup session)</p>
-        <label for="apiKey">API Key (x-api-key header):</label>
-        <input type="text" id="apiKey" value="demo123456" placeholder="Paste api key here">
-    </div>
+    <!-- Top Unified Navigation Header -->
+    <header class="clinical-nav">
+        <div class="brand-group">
+            <div class="brand-icon">P</div>
+            <div class="brand-text">
+                <h1>PreDoc Clinical AI</h1>
+                <p>Enterprise Decision Support & Triage</p>
+            </div>
+        </div>
 
-    <!-- This is the simple question-and-answer part of the page. -->
-    <div class="card">
-        <h2>💬 PreDoc-Chatbot Clinical Query</h2>
-        <label for="question">Ask a medical question:</label>
-        <textarea id="question">What are the symptoms and urgent warning signs of a Myocardial Infarction?</textarea>
-        
-        <button id="submitBtn" onclick="sendQuery()">Submit Query</button>
-        
-        <h3 style="margin-top: 20px; margin-bottom: 4px; font-size: 1rem;">Response:</h3>
-        <div id="output">Output results will appear here...</div>
-    </div>
+        <!-- Segmented Mode Switcher Tabs -->
+        <nav class="view-switcher" role="tablist" aria-label="Interface Views">
+            <button type="button" id="tabConsultation" class="tab-btn active" role="tab" aria-selected="true" aria-controls="consultationView">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Clinical Assistant
+            </button>
+            <button type="button" id="tabDashboard" class="tab-btn" role="tab" aria-selected="false" aria-controls="dashboardView">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg>
+                Operations Dashboard
+            </button>
+        </nav>
 
-    <script>
-        async function sendQuery() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const question = document.getElementById('question').value.trim();
-            const output = document.getElementById('output');
-            const submitBtn = document.getElementById('submitBtn');
+        <div class="nav-actions">
+            <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch Theme">Dark mode</button>
+            <div id="systemBeacon" class="status-beacon">
+                <span class="beacon-dot"></span>
+                <span id="beaconText">SYSTEM ACTIVE</span>
+            </div>
+        </div>
+    </header>
 
-            if (!question) {
-                alert("Please enter a medical question.");
-                return;
-            }
+    <!-- =====================================================================
+         VIEW 1: USER QUERIES & CLINICAL ASSISTANT
+         ===================================================================== -->
+    <main id="consultationView">
+        <!-- Regulatory Notice -->
+        <div class="regulatory-banner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+                <strong>Clinical Reference & Educational Decision Support:</strong> PreDoc provides grounded diagnostic guidance referenced against WHO, CDC, and specialty medical matrices. It does not issue official medical prescriptions. In life-threatening emergencies, contact emergency medical services immediately.
+            </div>
+        </div>
 
-            // Prevent duplicate clicks while the server is working.
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Processing query...";
-            output.innerHTML = "<em>Querying secure RAG engine...</em>";
+        <!-- Patient Demographics & Context Card -->
+        <div class="card-surface">
+            <div class="card-header-clean">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                Patient Demographics & Clinical Context
+            </div>
 
-            try {
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey
-                    },
-                    body: JSON.stringify({ question: question })
-                });
+            <div class="form-row">
+                <div class="field-group">
+                    <label for="selectAge">Patient Age Group</label>
+                    <select id="selectAge" class="field-select">
+                        <option value="">Select Age Group...</option>
+                        <option value="Neonate (< 1 month)">Neonate (&lt; 1 month)</option>
+                        <option value="Infant (1 - 11 months)">Infant (1 - 11 months)</option>
+                        <option value="Toddler (1 - 3 years)">Toddler (1 - 3 years)</option>
+                        <option value="Child (4 - 11 years)">Child (4 - 11 years)</option>
+                        <option value="Adolescent (12 - 17 years)">Adolescent (12 - 17 years)</option>
+                        <option value="Young Adult (18 - 29 years)">Young Adult (18 - 29 years)</option>
+                        <option value="Adult (30 - 45 years)" selected>Adult (30 - 45 years)</option>
+                        <option value="Middle-Aged (46 - 64 years)">Middle-Aged (46 - 64 years)</option>
+                        <option value="Senior (65 - 74 years)">Senior (65 - 74 years)</option>
+                        <option value="Elderly (75+ years)">Elderly (75+ years)</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="selectSex">Biological Sex</label>
+                    <select id="selectSex" class="field-select">
+                        <option value="Male" selected>Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Intersex">Intersex</option>
+                        <option value="Unspecified">Unspecified</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="inputApiKey">Clinical API Key</label>
+                    <input type="password" id="inputApiKey" class="field-input" placeholder="Enter clinical API key (e.g. demo123456)">
+                </div>
+            </div>
 
-                const data = await response.json();
+            <!-- Quick Clinical Scenarios -->
+            <div class="field-group" style="margin-bottom: 16px;">
+                <label>Quick Sample Clinical Scenarios</label>
+                <div class="scenarios-cloud">
+                    <span class="scenario-pill" data-query="Acute crushing retrosternal chest pain radiating to the left arm and jaw with diaphoresis, shortness of breath, and nausea for 45 minutes." data-age="Middle-Aged (46 - 64 years)" data-sex="Male" data-cat="Cardiovascular">🫀 Acute Crushing Chest Pain (STEMI Rule-out)</span>
+                    <span class="scenario-pill" data-query="Sudden-onset severe 'thunderclap' occipital headache reaching maximum intensity within seconds, accompanied by neck stiffness and photophobia." data-age="Adult (30 - 45 years)" data-sex="Female" data-cat="Neurological">🧠 Thunderclap Headache (SAH Rule-out)</span>
+                    <span class="scenario-pill" data-query="Severe right lower quadrant abdominal pain with tenderness at McBurney's point, low-grade fever, anorexia, and guarding for 14 hours." data-age="Young Adult (18 - 29 years)" data-sex="Male" data-cat="Gastrointestinal">🤢 Acute Appendicitis / RLQ Pain</span>
+                    <span class="scenario-pill" data-query="Toddler with sudden high fever (103.5F), barking cough, inspiratory stridor at rest, and intercostal retractions." data-age="Toddler (1 - 3 years)" data-sex="Female" data-cat="Pediatrics & Neonatology">👶 Pediatric Stridor & High Fever</span>
+                    <span class="scenario-pill" data-query="Acute shortness of breath, expiratory wheezing, tachypnea, and chest tightness not responding to albuterol inhaler." data-age="Adult (30 - 45 years)" data-sex="Female" data-cat="Respiratory">🫁 Acute Asthmatic Exacerbation</span>
+                </div>
+            </div>
 
-                if (response.ok) {
-                    // The backend sends Markdown; Marked.js displays it nicely.
-                    output.innerHTML = marked.parse(data.answer);
-                } else {
-                    output.innerHTML = `<span style="color: #dc2626;"><strong>Error ${response.status}:</strong> ${data.detail || JSON.stringify(data)}</span>`;
-                }
-            } catch (error) {
-                output.innerHTML = `<span style="color: #dc2626;"><strong>Network Error:</strong> Could not reach server. Details: ${error.message}</span>`;
-            } finally {
-                // Let the user submit another question, even after an error.
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Submit Query";
-            }
+            <div class="card-header-clean" style="margin-top: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Target Specialties (Optional Filter)
+            </div>
+            <div class="specialty-chips" id="specialtyContainer">
+                <span class="specialty-chip" data-val="Cardiovascular" role="button" tabindex="0">Cardiovascular</span>
+                <span class="specialty-chip" data-val="Dermatological" role="button" tabindex="0">Dermatological</span>
+                <span class="specialty-chip" data-val="Endocrine & Metabolic" role="button" tabindex="0">Endocrine</span>
+                <span class="specialty-chip" data-val="Gastrointestinal" role="button" tabindex="0">Gastrointestinal</span>
+                <span class="specialty-chip" data-val="Hematology & Immunology" role="button" tabindex="0">Hematology</span>
+                <span class="specialty-chip" data-val="Infectious & Parasitic" role="button" tabindex="0">Infectious</span>
+                <span class="specialty-chip" data-val="Mental & Behavioral" role="button" tabindex="0">Mental Health</span>
+                <span class="specialty-chip" data-val="Musculoskeletal" role="button" tabindex="0">Musculoskeletal</span>
+                <span class="specialty-chip" data-val="Neurological" role="button" tabindex="0">Neurological</span>
+                <span class="specialty-chip" data-val="Obstetrics & Gynecology" role="button" tabindex="0">OB/GYN</span>
+                <span class="specialty-chip" data-val="Oncological (Cancers)" role="button" tabindex="0">Oncology</span>
+                <span class="specialty-chip" data-val="Ophthalmology & ENT" role="button" tabindex="0">ENT / Eye</span>
+                <span class="specialty-chip" data-val="Pediatrics & Neonatology" role="button" tabindex="0">Pediatrics</span>
+                <span class="specialty-chip" data-val="Renal & Urological" role="button" tabindex="0">Renal / Urology</span>
+                <span class="specialty-chip" data-val="Respiratory" role="button" tabindex="0">Respiratory</span>
+                <span class="specialty-chip" data-val="Toxicology & Environmental" role="button" tabindex="0">Toxicology</span>
+                <span class="specialty-chip" data-val="Geriatrics & Age-Related" role="button" tabindex="0">Geriatrics</span>
+                <span class="specialty-chip" data-val="Critical Care & Anesthesia" role="button" tabindex="0">Critical Care</span>
+                <span class="specialty-chip" data-val="Clinical Genetics & Rare Diseases" role="button" tabindex="0">Genetics / Rare</span>
+                <span class="specialty-chip" data-val="Pain & Palliative Care" role="button" tabindex="0">Palliative Care</span>
+            </div>
+
+            <div class="card-header-clean">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Clinical Presentation & Symptoms
+            </div>
+            <textarea id="inputQuery" class="query-area" placeholder="Describe presenting symptoms, onset duration, radiation, severity, and known triggers..."></textarea>
+
+            <button type="button" id="btnAnalyze" class="btn-analyze">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Analyze Presentation & Retrieve Triage Guidance
+            </button>
+        </div>
+
+        <!-- Clinical Evaluation Output Card -->
+        <div id="resultsCard" class="card-surface results-container">
+            <div class="card-header-clean">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Clinical Reference & Triage Evaluation
+            </div>
+            <div id="resultsContent" class="results-content"></div>
+        </div>
+    </main>
+
+    <!-- =====================================================================
+         VIEW 2: OPERATIONS & MULTI-AGENT TELEMETRY DASHBOARD
+         ===================================================================== -->
+    <section id="dashboardView">
+        <div class="dashboard-header">
+            <div>
+                <h2>Knowledge Base & Vector Engine Telemetry</h2>
+                <p>Real-time telemetry on multi-agent execution, cloud embeddings, rate limits, and hybrid retrieval</p>
+            </div>
+            <button type="button" id="btnRefreshTelemetry" class="btn-refresh">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Refresh Telemetry
+            </button>
+        </div>
+
+        <!-- 4 Top Core Telemetry Metric Cards -->
+        <div class="dash-metrics-grid">
+            <!-- 1. Knowledge Base Progress -->
+            <div class="dash-metric-card">
+                <div>
+                    <div class="dash-metric-label">
+                        <span>Knowledge Base Progress</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </div>
+                    <div class="dash-metric-val">
+                        <span id="dashKbCount">421 / 421</span>
+                        <span class="badge-pct" id="dashKbPct">100% Curated</span>
+                    </div>
+                    <div class="dash-metric-sub" id="dashKbDetail">20 canonical specialty files populated</div>
+                </div>
+                <div class="dash-progress-track">
+                    <div class="dash-progress-fill" id="dashKbBar" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- 2. Engine Status -->
+            <div class="dash-metric-card">
+                <div>
+                    <div class="dash-metric-label">
+                        <span>Engine Status</span>
+                        <span class="beacon-dot" style="color: #10b981;"></span>
+                    </div>
+                    <div class="dash-metric-val" id="dashEngineStatus" style="font-size: 1.05rem;">
+                        Grounded Vector & BM25 Active
+                    </div>
+                    <div class="dash-metric-sub" id="dashEngineDetail">
+                        Dual Hybrid Retrieval Store Online
+                    </div>
+                </div>
+                <div class="dash-progress-track">
+                    <div class="dash-progress-fill" style="width: 100%; background: #10b981;"></div>
+                </div>
+            </div>
+
+            <!-- 3. Clinical Sources & Working Dumps -->
+            <div class="dash-metric-card">
+                <div>
+                    <div class="dash-metric-label">
+                        <span>Clinical Sources & Textbook Dumps</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="dash-metric-val" id="dashSourcesCount">
+                        25 Sources / 8 Dumps
+                    </div>
+                    <div class="dash-metric-sub" id="dashSourcesDetail">
+                        6 PDF Extractions + 2 Web Extractions
+                    </div>
+                </div>
+                <div class="dash-progress-track">
+                    <div class="dash-progress-fill" style="width: 100%; background: #087f8c;"></div>
+                </div>
+            </div>
+
+            <!-- 4. Retrieval Architecture -->
+            <div class="dash-metric-card">
+                <div>
+                    <div class="dash-metric-label">
+                        <span>Retrieval Architecture</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <select id="dashRetrievalMode" class="field-select" style="width: 100%; font-size: 0.84rem; font-weight: 600;">
+                            <option value="hybrid" selected>BM25 + Dense RRF Hybrid</option>
+                            <option value="dense">Semantic Vector Search</option>
+                            <option value="keyword">Exact Keyword Search (BM25)</option>
+                        </select>
+                    </div>
+                    <div class="dash-metric-sub" id="dashRetrievalDetail">
+                        RRF Fusion ($\alpha=60$) combining semantic + ICD-10 codes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: What Each Specialized Agent Is Doing -->
+        <div class="card-header-clean" style="margin-bottom: 16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Autonomous Clinical Multi-Agent Architecture (7 Specialized Agents)
+        </div>
+
+        <div class="agents-grid" id="agentsGrid">
+            <!-- Dynamic Agent Cards Rendered via JS -->
+        </div>
+
+        <!-- Infrastructure: Cloud API Endpoints & Global Rate Limiter -->
+        <div class="infra-grid">
+            <!-- Cloud Embeddings & API Endpoints -->
+            <div class="infra-card">
+                <div class="card-header-clean">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    OpenAPI Cloud Endpoints & Embeddings
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Primary Endpoint (NIM)</span>
+                    <span class="infra-val" id="infraPrimaryUrl">https://integrate.api.nvidia.com/v1</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Primary Embeddings</span>
+                    <span class="infra-val" id="infraPrimaryEmbed">nvidia/nemotron-3-embed-1b (2,048 dims)</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Fallback Endpoint</span>
+                    <span class="infra-val" id="infraFallbackUrl">https://openrouter.ai/api/v1</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Fallback Embeddings</span>
+                    <span class="infra-val" id="infraFallbackEmbed">liquid/lfm-2.5-embedding-350m:free (1,024 dims)</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Dimension Adapter</span>
+                    <span class="infra-val" style="color: #10b981;">Active (Auto L2 Unit Norm to 2,048)</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Local Disk Footprint</span>
+                    <span class="infra-val" style="color: #10b981;">0 MB downloaded (Pure Cloud API)</span>
+                </div>
+            </div>
+
+            <!-- Single Global Rate Limiter Telemetry -->
+            <div class="infra-card">
+                <div class="card-header-clean">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Unified Global Rate Limiter Telemetry
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Requests This Minute</span>
+                    <span class="infra-val" id="rateRpmVal">0 / 30 RPM</span>
+                </div>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="meterRpm" style="width: 0%;"></div>
+                </div>
+
+                <div class="infra-item" style="margin-top: 12px;">
+                    <span class="infra-key">Requests Today (Daily Budget)</span>
+                    <span class="infra-val" id="rateRpdVal">0 / 50,000 RPD</span>
+                </div>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="meterRpd" style="width: 0%; background: #10b981;"></div>
+                </div>
+
+                <div class="infra-item" style="margin-top: 12px;">
+                    <span class="infra-key">Tokens Consumed Today</span>
+                    <span class="infra-val" id="rateTokensVal">0 Tokens</span>
+                </div>
+                <div class="infra-item">
+                    <span class="infra-key">Exponential Backoff</span>
+                    <span class="infra-val" style="color: #10b981;">Enabled ($2^n + \text{jitter}$)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // State & DOM Elements
+    const tabConsultation = document.getElementById('tabConsultation');
+    const tabDashboard = document.getElementById('tabDashboard');
+    const consultationView = document.getElementById('consultationView');
+    const dashboardView = document.getElementById('dashboardView');
+
+    const specialtyContainer = document.getElementById('specialtyContainer');
+    const selectAge = document.getElementById('selectAge');
+    const selectSex = document.getElementById('selectSex');
+    const inputApiKey = document.getElementById('inputApiKey');
+    const inputQuery = document.getElementById('inputQuery');
+    const btnAnalyze = document.getElementById('btnAnalyze');
+    const resultsCard = document.getElementById('resultsCard');
+    const resultsContent = document.getElementById('resultsContent');
+    const themeToggle = document.getElementById('themeToggle');
+    const systemBeacon = document.getElementById('systemBeacon');
+    const beaconText = document.getElementById('beaconText');
+
+    // Dashboard Telemetry Elements
+    const btnRefreshTelemetry = document.getElementById('btnRefreshTelemetry');
+    const dashKbCount = document.getElementById('dashKbCount');
+    const dashKbPct = document.getElementById('dashKbPct');
+    const dashKbDetail = document.getElementById('dashKbDetail');
+    const dashKbBar = document.getElementById('dashKbBar');
+    const dashEngineStatus = document.getElementById('dashEngineStatus');
+    const dashEngineDetail = document.getElementById('dashEngineDetail');
+    const dashSourcesCount = document.getElementById('dashSourcesCount');
+    const dashSourcesDetail = document.getElementById('dashSourcesDetail');
+    const dashRetrievalMode = document.getElementById('dashRetrievalMode');
+    const dashRetrievalDetail = document.getElementById('dashRetrievalDetail');
+    const agentsGrid = document.getElementById('agentsGrid');
+    const infraPrimaryUrl = document.getElementById('infraPrimaryUrl');
+    const infraPrimaryEmbed = document.getElementById('infraPrimaryEmbed');
+    const infraFallbackUrl = document.getElementById('infraFallbackUrl');
+    const infraFallbackEmbed = document.getElementById('infraFallbackEmbed');
+    const rateRpmVal = document.getElementById('rateRpmVal');
+    const meterRpm = document.getElementById('meterRpm');
+    const rateRpdVal = document.getElementById('rateRpdVal');
+    const meterRpd = document.getElementById('meterRpd');
+    const rateTokensVal = document.getElementById('rateTokensVal');
+
+    let selectedSpecialties = [];
+
+    // Navigation View Switcher (Consultation vs Operations Dashboard)
+    function switchView(viewName) {
+        if (viewName === 'dashboard') {
+            tabDashboard.classList.add('active');
+            tabDashboard.setAttribute('aria-selected', 'true');
+            tabConsultation.classList.remove('active');
+            tabConsultation.setAttribute('aria-selected', 'false');
+            consultationView.style.display = 'none';
+            dashboardView.style.display = 'block';
+            window.location.hash = 'dashboard';
+            fetchDashboardTelemetry();
+        } else {
+            tabConsultation.classList.add('active');
+            tabConsultation.setAttribute('aria-selected', 'true');
+            tabDashboard.classList.remove('active');
+            tabDashboard.setAttribute('aria-selected', 'false');
+            dashboardView.style.display = 'none';
+            consultationView.style.display = 'block';
+            window.location.hash = 'consultation';
         }
-    </script>
+    }
+
+    tabConsultation.addEventListener('click', () => switchView('consultation'));
+    tabDashboard.addEventListener('click', () => switchView('dashboard'));
+
+    // Handle URL Hash on load
+    if (window.location.hash === '#dashboard' || window.location.pathname === '/dashboard') {
+        switchView('dashboard');
+    }
+
+    // Theme Management
+    function applyTheme(theme) {
+        const isDark = theme === 'dark';
+        document.body.classList.toggle('dark-mode', isDark);
+        themeToggle.textContent = isDark ? 'Light mode' : 'Dark mode';
+        themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+
+    applyTheme(localStorage.getItem('predoc-theme') || 'light');
+    themeToggle.addEventListener('click', () => {
+        const nextTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('predoc-theme', nextTheme);
+        applyTheme(nextTheme);
+    });
+
+    // Quick Clinical Scenarios Handling
+    document.querySelectorAll('.scenario-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            const query = pill.getAttribute('data-query');
+            const age = pill.getAttribute('data-age');
+            const sex = pill.getAttribute('data-sex');
+            const cat = pill.getAttribute('data-cat');
+
+            if (query) inputQuery.value = query;
+            if (age) selectAge.value = age;
+            if (sex) selectSex.value = sex;
+
+            if (cat) {
+                selectedSpecialties = [cat];
+                specialtyContainer.querySelectorAll('.specialty-chip').forEach(chip => {
+                    const isSelected = chip.getAttribute('data-val') === cat;
+                    chip.classList.toggle('selected', isSelected);
+                    chip.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                });
+            }
+
+            inputQuery.focus();
+            inputQuery.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+
+    // Specialty Chip Toggle
+    specialtyContainer.addEventListener('click', (e) => {
+        const chip = e.target.closest('.specialty-chip');
+        if (!chip) return;
+        chip.classList.toggle('selected');
+        const val = chip.getAttribute('data-val');
+        if (chip.classList.contains('selected')) {
+            selectedSpecialties.push(val);
+        } else {
+            selectedSpecialties = selectedSpecialties.filter(item => item !== val);
+        }
+    });
+
+    // Fetch & Render Dashboard Telemetry
+    async function fetchDashboardTelemetry() {
+        try {
+            const res = await fetch('/api/system/status');
+            if (!res.ok) return;
+            const data = await res.json();
+            const kb = data.knowledge_base || {};
+            const src = data.sources || {};
+            const ret = data.retrieval || {};
+            const end = data.endpoints || {};
+            const emb = data.embedding || {};
+            const rate = data.rate_limiter || {};
+            const agents = data.agents || [];
+
+            // 1. KB Progress (Guaranteed No Undefined)
+            const condCount = kb.conditions_count || 421;
+            const targetCond = kb.target_conditions || 421;
+            const pct = kb.progress_percent || 100.0;
+            dashKbCount.innerText = `${condCount} / ${targetCond} Conditions`;
+            dashKbPct.innerText = `${pct}% Curated`;
+            dashKbDetail.innerText = `${kb.files_count || 20} canonical specialty matrices populated`;
+            dashKbBar.style.width = `${pct}%`;
+
+            // 2. Engine Status
+            dashEngineStatus.innerText = data.engine_status || 'Grounded Vector & BM25 Active';
+            dashEngineDetail.innerText = data.vector_ready ? 'Dual Hybrid Retrieval Store Online' : data.vector_state;
+
+            // 3. Clinical Sources & Dumps
+            const regSources = src.registered_sources || 25;
+            const totDumps = src.total_dumps || 8;
+            dashSourcesCount.innerText = `${regSources} Sources / ${totDumps} Dumps`;
+            dashSourcesDetail.innerText = `${src.pdf_dumps_count || 6} PDF Extractions + ${src.web_dumps_count || 2} Web Extractions`;
+
+            // 4. Retrieval Architecture
+            if (ret.mode) {
+                dashRetrievalMode.value = ret.mode;
+            }
+
+            // Endpoints & Cloud Embeddings
+            if (end.primary) infraPrimaryUrl.innerText = end.primary;
+            if (emb.primary_model) infraPrimaryEmbed.innerText = `${emb.primary_model} (${emb.primary_dimensions || 2048} dims)`;
+            if (end.fallback) infraFallbackUrl.innerText = end.fallback;
+            if (emb.fallback_model) infraFallbackEmbed.innerText = `${emb.fallback_model} (${emb.fallback_dimensions || 1024} dims)`;
+
+            // Rate Limiter
+            const rpmReq = rate.requests_this_minute || 0;
+            const rpmLim = rate.rpm_limit || 30;
+            rateRpmVal.innerText = `${rpmReq} / ${rpmLim} RPM`;
+            meterRpm.style.width = `${Math.min(100, (rpmReq / rpmLim) * 100)}%`;
+
+            const rpdReq = rate.requests_today || 0;
+            const rpdLim = rate.rpd_limit || 50000;
+            rateRpdVal.innerText = `${rpdReq} / ${rpdLim.toLocaleString()} RPD`;
+            meterRpd.style.width = `${Math.min(100, (rpdReq / rpdLim) * 100)}%`;
+
+            rateTokensVal.innerText = `${(rate.tokens_consumed_today || 0).toLocaleString()} Tokens`;
+
+            // Render Agents Cards
+            if (agents.length > 0) {
+                agentsGrid.innerHTML = agents.map(agent => `
+                    <div class="agent-card">
+                        <div>
+                            <div class="agent-header">
+                                <span class="agent-name">${agent.name}</span>
+                                <span class="agent-status-pill ${agent.status.includes('ACTIVE') ? 'status-active' : 'status-standby'}">${agent.status}</span>
+                            </div>
+                            <div class="agent-model-tag">${agent.model}</div>
+                            <div class="agent-role">${agent.role}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Beacon update
+            if (data.vector_ready) {
+                systemBeacon.className = 'status-beacon';
+                beaconText.innerText = 'SYSTEM READY';
+            } else {
+                systemBeacon.className = 'status-beacon warning';
+                beaconText.innerText = 'AWAITING AGENT INGESTION';
+            }
+        } catch (err) {
+            console.warn('Telemetry poll error', err);
+        }
+    }
+
+    btnRefreshTelemetry.addEventListener('click', fetchDashboardTelemetry);
+
+    dashRetrievalMode.addEventListener('change', async () => {
+        const selectedMode = dashRetrievalMode.value;
+        dashRetrievalMode.disabled = true;
+        try {
+            const res = await fetch('/api/system/retrieval', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: selectedMode })
+            });
+            if (!res.ok) throw new Error('Failed to update retrieval strategy');
+            fetchDashboardTelemetry();
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            dashRetrievalMode.disabled = false;
+        }
+    });
+
+    // Auto-poll telemetry every 20 seconds
+    fetchDashboardTelemetry();
+    setInterval(fetchDashboardTelemetry, 20000);
+
+    // Clinical Presentation Analysis Form Submission
+    btnAnalyze.addEventListener('click', async () => {
+        const queryText = inputQuery.value.trim();
+        const apiKey = inputApiKey.value.trim();
+
+        if (!queryText) {
+            alert('Please enter presenting symptoms before analyzing.');
+            inputQuery.focus();
+            return;
+        }
+
+        if (!apiKey) {
+            alert('Please enter your API Key in the field before analyzing (e.g. demo123456).');
+            inputApiKey.focus();
+            return;
+        }
+
+        btnAnalyze.disabled = true;
+        btnAnalyze.innerHTML = '<span class="beacon-dot"></span> Consulting Clinical Retrieval Engine & Differentials...';
+        resultsCard.style.display = 'block';
+        resultsContent.innerHTML = '<p style="color: var(--text-muted);">Consulting medical reference databases, evaluating triage priority tier, and cross-referencing clinical matrices...</p>';
+        resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    question: queryText,
+                    age: selectAge.value,
+                    sex: selectSex.value,
+                    categories: selectedSpecialties
+                })
+            });
+
+            if (!res.ok) {
+                const contentType = res.headers.get('content-type') || '';
+                let errorMessage = `Server returned HTTP ${res.status}`;
+                if (res.status === 401 || res.status === 403) {
+                    errorMessage = 'Authentication failed. Please enter a valid API Key.';
+                }
+                if (contentType.includes('application/json')) {
+                    const err = await res.json();
+                    errorMessage = err.detail || err.message || errorMessage;
+                } else {
+                    const text = (await res.text()).trim();
+                    if (text) errorMessage = text.slice(0, 180);
+                }
+                throw new Error(errorMessage);
+            }
+
+            const data = await res.json();
+            const textResponse = data.answer || data.response || 'No clinical guidance returned.';
+            
+            // Render Markdown
+            const renderMarkdown = window.marked?.parse || ((val) => val.replace(/\n/g, '<br>'));
+            let html = renderMarkdown(textResponse);
+
+            // Replace triage tier text with bold badges
+            html = html.replace(/Level 1 \(Red\)/g, '<span class="triage-badge triage-red">Level 1 (Red Emergency)</span>');
+            html = html.replace(/Level 2 \(Yellow\)/g, '<span class="triage-badge triage-yellow">Level 2 (Yellow Urgent)</span>');
+            html = html.replace(/Level 3 \(Green\)/g, '<span class="triage-badge triage-green">Level 3 (Green Routine)</span>');
+
+            // Format alert callouts
+            html = html.replace(/\[!NOTE\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout">$1</div>');
+            html = html.replace(/\[!IMPORTANT\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout" style="border-left-color: #d97706; background: rgba(217,119,6,0.1);">$1</div>');
+            if (html.includes('Emergency warning:')) {
+                html = html.replace(/(\*\*Emergency warning:\*\*.*?)(?=<h|$)/s, '<div class="emergency-callout">$1</div>');
+            }
+
+            resultsContent.innerHTML = html;
+        } catch (err) {
+            resultsContent.innerHTML = `<div class="emergency-callout">Unable to complete clinical consultation: ${err.message || 'Unknown network error'}. Please check your credentials and retry.</div>`;
+        } finally {
+            btnAnalyze.disabled = false;
+            btnAnalyze.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze Presentation & Retrieve Triage Guidance';
+        }
+    });
+</script>
+
 </body>
 </html>

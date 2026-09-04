@@ -42,6 +42,7 @@ llama-index-instrumentation==0.6.0
 llama-index-llms-openai==0.7.10
 llama-index-llms-openai-like==0.8.0
 llama-index-readers-file==0.7.0
+llama-index-retrievers-bm25==0.8.0
 llama-index-workflows==2.23.3
 MarkupSafe==3.0.3
 marshmallow==3.26.2
@@ -85,3 +86,5 @@ urllib3==2.7.0
 uvicorn==0.52.4
 wrapt==2.4.0
 yarl==1.24.5
+
+rank-bm25==0.2.2

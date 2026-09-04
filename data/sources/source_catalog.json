@@ -1,0 +1,262 @@
+{
+  "catalog_version": "2.2",
+  "last_audit_date": "2026-09-03",
+  "governance_standard": "PreDoc Clinical Data Governance v2.2 (ISO 27001 / HIPAA Compliant Provenance)",
+  "total_registered_sources": 25,
+  "sources": [
+    {
+      "id": "SRC-001",
+      "title": "Handbook of Signs and Symptoms",
+      "edition": "5th Edition",
+      "publisher": "Wolters Kluwer / Lippincott Williams & Wilkins",
+      "isbn": "978-1451194166",
+      "type": "Clinical Reference Textbook",
+      "relative_path": "sources/raw_pdfs/Handbook_of_Signs_and_Symptoms.pdf",
+      "status": "active_ingestion_target",
+      "target_specialties": ["All 20 Specialties"],
+      "description": "Comprehensive clinical reference of cardinal signs, symptoms, etiologies, physical examination maneuvers, and urgent red flag indicators."
+    },
+    {
+      "id": "SRC-002",
+      "title": "Professional Guide to Signs and Symptoms",
+      "edition": "6th Edition",
+      "publisher": "Wolters Kluwer",
+      "isbn": "978-1451190632",
+      "type": "Clinical Diagnostic Textbook",
+      "relative_path": "sources/raw_pdfs/professional-guide-to-signs-and-symptoms-6th-edition.pdf",
+      "status": "active_ingestion_target",
+      "target_specialties": ["All 20 Specialties"],
+      "description": "Detailed clinical diagnostic handbook covering presentation, patient history taking, physical examination, diagnostic tests, and differential diagnosis."
+    },
+    {
+      "id": "SRC-003",
+      "title": "WHO ICD-10-CM Official Guidelines for Coding and Reporting",
+      "organization": "World Health Organization (WHO) / CDC NCHS",
+      "type": "Diagnostic Classification System",
+      "url": "https://www.cdc.gov/nchs/icd/icd10cm.htm",
+      "status": "canonical_reference",
+      "target_specialties": ["All 20 Specialties"],
+      "description": "Official international classification of diseases and diagnostic coding matrix."
+    },
+    {
+      "id": "SRC-004",
+      "title": "CDC Stacks & Public Health Clinical Practice Guidelines",
+      "organization": "US Centers for Disease Control and Prevention (CDC)",
+      "type": "Public Health & Infectious Guidance",
+      "url": "https://stacks.cdc.gov",
+      "status": "canonical_reference",
+      "target_specialties": ["Infectious & Parasitic", "Toxicology & Environmental", "Respiratory"],
+      "description": "Evidence-based guidelines for infectious diseases, outbreak triage, environmental exposures, and vaccination protocols."
+    },
+    {
+      "id": "SRC-005",
+      "title": "NCBI / PubMed Clinical Query Database & NLM Medical Subject Headings (MeSH)",
+      "organization": "National Library of Medicine (NLM / NIH)",
+      "type": "Peer-Reviewed Medical Literature Database",
+      "url": "https://pubmed.ncbi.nlm.nih.gov",
+      "status": "canonical_reference",
+      "target_specialties": ["All 20 Specialties"],
+      "description": "PubMed clinical query filters, systematic reviews, and MeSH indexing for rare diseases and differential diagnosis."
+    },
+    {
+      "id": "SRC-006",
+      "title": "ACC/AHA Clinical Practice Guidelines for Cardiovascular Disease",
+      "organization": "American College of Cardiology / American Heart Association",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/cardiovascular.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Cardiovascular"],
+      "description": "Guidelines for STEMI/NSTEMI management, heart failure (ADHF/HFrEF/HFpEF), aortic dissection, and dysrhythmias."
+    },
+    {
+      "id": "SRC-007",
+      "title": "AAD Clinical Practice Guidelines",
+      "organization": "American Academy of Dermatology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/dermatological.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Dermatological"],
+      "description": "Guidelines for melanoma, psoriasis, atopic dermatitis, bullous pemphigoid, and severe cutaneous adverse reactions."
+    },
+    {
+      "id": "SRC-008",
+      "title": "Endocrine Society Clinical Practice Guidelines",
+      "organization": "The Endocrine Society",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/endocrine_metabolic.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Endocrine & Metabolic"],
+      "description": "Guidelines for DKA, adrenal insufficiency, thyroid disorders, Cushing syndrome, and pheochromocytoma."
+    },
+    {
+      "id": "SRC-009",
+      "title": "ACG Clinical Guidelines for Gastrointestinal Disorders",
+      "organization": "American College of Gastroenterology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/gastrointestinal.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Gastrointestinal"],
+      "description": "Guidelines for acute GI bleeding, appendicitis, pancreatitis, inflammatory bowel disease, and cirrhosis."
+    },
+    {
+      "id": "SRC-010",
+      "title": "ASH Practice Guidelines for Hematologic Disorders",
+      "organization": "American Society of Hematology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/hematology_immunology.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Hematology & Immunology"],
+      "description": "Guidelines for DIC, immune thrombocytopenia, sickle cell crises, PNH, and aplastic anemia."
+    },
+    {
+      "id": "SRC-011",
+      "title": "IDSA Guidelines for Infectious Diseases",
+      "organization": "Infectious Diseases Society of America",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/infectious_parasitic.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Infectious & Parasitic"],
+      "description": "Guidelines for bacterial meningitis, sepsis, endocarditis, Lyme disease, opportunistic infections, and malaria."
+    },
+    {
+      "id": "SRC-012",
+      "title": "APA DSM-5-TR Clinical Guidance",
+      "organization": "American Psychiatric Association",
+      "type": "Diagnostic Classification System",
+      "target_markdown_file": "data/knowledge_base/mental_behavioral.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Mental & Behavioral"],
+      "description": "Diagnostic criteria for major depressive disorder, schizophrenia, bipolar disorder, panic disorder, and delirium."
+    },
+    {
+      "id": "SRC-013",
+      "title": "ACR Clinical Guidance for Rheumatic & Musculoskeletal Diseases",
+      "organization": "American College of Rheumatology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/musculoskeletal.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Musculoskeletal"],
+      "description": "Guidelines for septic arthritis, rheumatoid arthritis, systemic lupus erythematosus, gout, and vasculitis."
+    },
+    {
+      "id": "SRC-014",
+      "title": "AAN Practice Guidelines for Neurological Disorders",
+      "organization": "American Academy of Neurology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/neurological.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Neurological"],
+      "description": "Guidelines for acute ischemic stroke, subarachnoid hemorrhage, status epilepticus, Guillain-Barré, and MS."
+    },
+    {
+      "id": "SRC-015",
+      "title": "ACOG Practice Bulletins & Clinical Guidance",
+      "organization": "American College of Obstetricians and Gynecologists",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/obstetrics_gynecology.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Obstetrics & Gynecology"],
+      "description": "Bulletins for preeclampsia/eclampsia, ectopic pregnancy, placental abruption, OHSS, and endometriosis."
+    },
+    {
+      "id": "SRC-016",
+      "title": "NCCN & ASCO Clinical Practice Guidelines in Oncology",
+      "organization": "National Comprehensive Cancer Network / ASCO",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/oncological.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Oncological (Cancers)"],
+      "description": "Guidelines for oncological emergencies (SVC syndrome, spinal cord compression, tumor lysis syndrome, febrile neutropenia)."
+    },
+    {
+      "id": "SRC-017",
+      "title": "AAO & AAO-HNS Clinical Practice Guidelines",
+      "organization": "American Academy of Ophthalmology / AAO Head and Neck Surgery",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/ophthalmology_ent.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Ophthalmology & ENT"],
+      "description": "Guidelines for acute angle-closure glaucoma, retinal detachment, epiglottitis, quinsy, and sudden sensorineural hearing loss."
+    },
+    {
+      "id": "SRC-018",
+      "title": "AAP Pediatric Clinical Practice Guidelines",
+      "organization": "American Academy of Pediatrics",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/pediatrics_neonatology.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Pediatrics & Neonatology"],
+      "description": "Guidelines for pediatric croup, RSV bronchiolitis, Kawasaki disease, febrile seizures, and neonatal jaundice."
+    },
+    {
+      "id": "SRC-019",
+      "title": "AUA & KDIGO Clinical Practice Guidelines",
+      "organization": "American Urological Association / KDIGO Kidney Disease Guidelines",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/renal_urological.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Renal & Urological"],
+      "description": "Guidelines for acute kidney injury, nephrotic syndrome, testicular torsion, nephrolithiasis, and pyelonephritis."
+    },
+    {
+      "id": "SRC-020",
+      "title": "ATS / ERS Clinical Practice Guidelines for Respiratory Medicine",
+      "organization": "American Thoracic Society / European Respiratory Society",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/respiratory.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Respiratory"],
+      "description": "Guidelines for acute pulmonary embolism, ARDS, asthma exacerbations, COPD, tension pneumothorax, and idiopathic pulmonary fibrosis."
+    },
+    {
+      "id": "SRC-021",
+      "title": "AACT Clinical Practice Guidelines for Medical Toxicology",
+      "organization": "American Academy of Clinical Toxicology",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/toxicology_environmental.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Toxicology & Environmental"],
+      "description": "Guidelines for acetaminophen toxicity, organophosphate poisoning, carbon monoxide, opioid toxidrome, and heat stroke."
+    },
+    {
+      "id": "SRC-022",
+      "title": "AGS Beers Criteria & Geriatric Care Guidelines",
+      "organization": "American Geriatrics Society",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/geriatrics_age_related.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Geriatrics & Age-Related"],
+      "description": "Guidelines for delirium (CAM criteria), frailty, pressure injuries, polypharmacy cascades, and atypical presentations in older adults."
+    },
+    {
+      "id": "SRC-023",
+      "title": "Surviving Sepsis Campaign & SCCM Critical Care Guidelines",
+      "organization": "Society of Critical Care Medicine (SCCM)",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/critical_care_anesthesia.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Critical Care & Anesthesia"],
+      "description": "Guidelines for septic shock, cardiogenic shock, CICO emergencies, malignant hyperthermia, and LAST protocols."
+    },
+    {
+      "id": "SRC-024",
+      "title": "ACMG Practice Guidelines for Clinical Genetics",
+      "organization": "American College of Medical Genetics and Genomics",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/clinical_genetics_rare.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Clinical Genetics & Rare Diseases"],
+      "description": "Guidelines for Marfan syndrome, vascular Ehlers-Danlos, Huntington disease, metabolic storage disorders, and porphyrias."
+    },
+    {
+      "id": "SRC-025",
+      "title": "AAPM & NHPCO Practice Guidelines for Pain & Palliative Care",
+      "organization": "American Academy of Pain Medicine / NHPCO",
+      "type": "Specialty Practice Guidelines",
+      "target_markdown_file": "data/knowledge_base/pain_palliative_care.md",
+      "status": "canonical_reference",
+      "target_specialties": ["Pain & Palliative Care"],
+      "description": "Guidelines for CRPS, trigeminal neuralgia, breakthrough cancer pain, opioid hyperalgesia, and palliative symptom control."
+    }
+  ]
+}

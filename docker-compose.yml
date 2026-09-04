@@ -11,6 +11,10 @@ services:
         max_attempts: 3
         window: 120s
     secrets:
+      - source: primary_api_key
+        mode: 0444
+      - source: nvidia_api_key
+        mode: 0444
       - source: openrouter_key
         mode: 0444
       - source: admin_user
@@ -35,6 +39,10 @@ services:
     command: tunnel --url http://app:8010
 
 secrets:
+  primary_api_key:
+    external: true
+  nvidia_api_key:
+    external: true
   openrouter_key:
     external: true
   admin_user:

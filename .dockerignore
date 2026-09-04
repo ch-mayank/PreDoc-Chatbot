@@ -29,3 +29,11 @@ Thumbs.db
 # Local Data / Persistent Storage (Kept separate in config directory)
 storage/
 data/
+
+# AI Agent Instructions & Guidelines
+SOUL.md
+AGENTS.md
+.agents/
+
+# Operational & Server Setup Documentation
+SERVER.md

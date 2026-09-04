@@ -1,0 +1,36 @@
+{
+  "source_id": "SRC-004",
+  "title": "CDC / WHO Public Health Clinical Practice Guidelines",
+  "schema_version": "2.2.0",
+  "manifest": {
+    "generated_at": "2026-09-04T08:27:13Z",
+    "data_checksum": "8625c587be38ef600f5039b1db2232deb08cb262ed51bac25e2f229fe30d2efc",
+    "model_used": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "total_sources_crawled": 2,
+    "failed_sources_count": 1,
+    "semantic_summary": "Curated public health practice guidelines from CDC, WHO, and NIH with AI-extracted clinical presentations."
+  },
+  "failed_sources": [
+    {
+      "source_id": "SRC-003",
+      "url": "https://www.cdc.gov/nchs/icd/icd10cm.htm",
+      "error": "404 Client Error: Not Found for url: https://www.cdc.gov/nchs/icd/icd10cm.htm"
+    }
+  ],
+  "guidelines": [
+    {
+      "source_id": "SRC-004",
+      "title": "CDC Stacks & Public Health Clinical Practice Guidelines",
+      "url": "https://stacks.cdc.gov",
+      "text_extract": "Welcome to CDC Stacks\nSkip to main content\n×\nSearch\nAdvanced Search\nSearch our Collections\nSearch Our Collections\nAll Collections\nAdvisory Committee on Immunization Practices (ACIP)\nCDC and ATSDR Budget Documents\nCDC Open Science Resources\nCDC Public Access\nChronic Diseases and Conditions\nDavid J. Sencer CDC Museum\nEmerging Infectious Diseases\nGuidelines and Recommendations\nHealth Alert Network (HAN)\nHistorical CDC.gov Content\nInfectious Diseases\nMorbidity and Mortality Weekly Report (MMWR)\nNational Center for Health Statistics\nNational Institute for Occupational Safety and Health\nNational Notifiable Diseases Surveillance System (NNDSS)\nPreventing Chronic Disease\nPublic Health Reports\nPublic Health Resources\nStephen B. Thacker CDC Library\nThe Community Guide\nAdvanced\nSearch\nEbola Outbreak\nLearn about Ebola outbreaks, public health response efforts, prevention strategies, and ongoing surveillance activities.\nLearn More\nFood Safety\nThe National Food Safety Education Month is a great time to freshen up on food safety and educate others about preventing food poisoning.\nOlder Adults & Healthy Living\nResources and tips to support healthy aging, independence, and well-being for older adults.\nSuicide Prevention\nSuicide can be prevented. September 10th is World Suicide Prevention Day. The entire month is dedicated to suicide prevention awareness\nMorbidity and Mortality Weekly Report (MMWR)\nEmerging Infectious Diseases\nPreventing Chronic Disease\nNational Center for Health Statistics\nNational Notifiable Diseases Surveillance System (NNDSS)\nNational Institute for Occupational Safety and Health\nCDC Public Access\nStephen B. Thacker CDC Library\nStay Connected\nPublic Access Policy\nEmail Subscription\nExit\n\t\t\t\t\tNotification/Disclaimer Policy\nLinks with this icon\nindicate that you are leaving the CDC website.\nThe Centers for Disease Control and Prevention (CDC)\n\t\t\t\t\t\tcannot attest to the accuracy of a non-federal website.\nLinking to a non-federal Website does not constitute an\n\t\t\t\t\t\tendorsement by CDC or any of its employees of the sponsors or the\n\t\t\t\t\t\tinformation and products presented on the website.\nYou will be subject to the destination website's privacy\n\t\t\t\t\t\tpolicy when you follow the link.\nCDC is not responsible for Section 508 compliance\n\t\t\t\t\t\t(accessibility) on other federal or private websites.\nFor more information on CDC's web notification policies, see\nWebsite Disclaimers\n.\nCancel\nContinue",
+      "ai_extracted_entities": []
+    },
+    {
+      "source_id": "SRC-005",
+      "title": "NCBI / PubMed Clinical Query Database & NLM Medical Subject Headings (MeSH)",
+      "url": "https://pubmed.ncbi.nlm.nih.gov",
+      "text_extract": "PubMed\nThis site needs JavaScript to work properly. Please enable it to take advantage of the complete set of features!\nClipboard, Search History, and several other advanced features are temporarily unavailable.\nSkip to main page content\nThe .gov means it’s official.\nFederal government websites often end in .gov or .mil. Before\n            sharing sensitive information, make sure you’re on a federal\n            government site.\nThe site is secure.\nThe\nhttps://\nensures that you are connecting to the\n            official website and that any information you provide is encrypted\n            and transmitted securely.\nAccess keys\nNCBI Homepage\nMyNCBI Homepage\nMain Content\nMain Navigation\nHome Page\nSearch:\nSearch\nAdvanced\nClipboard\nPubMed® comprises more than 40 million citations for biomedical literature from MEDLINE, life science journals, and online books. Citations may include links to full text content from PubMed Central and publisher web sites.\nLearn\nAbout PubMed\nFAQs & User Guide\nFinding Full Text\nFind\nAdvanced Search\nClinical Queries\nSingle Citation Matcher\nDownload\nE-utilities API\nFTP\nBatch Citation Matcher\nExplore\nMeSH Database\nJournals\nTrending Articles\nPubMed records with recent increases in activity\nNut consumption in relation to all-cause and cause-specific mortality: a meta-analysis 18 prospective studies.\nChen GC, et al.\nFood Funct. 2017.\nPMID:\n28875220\nReview.\n2026 ESC Guidelines for the management of heart failure.\nKøber L, et al.\nEur Heart J. 2026.\nPMID:\n42661420\nNo abstract available.\nImpacts of arginine nutrition on embryonic and fetal development in mammals.\nWu G, et al.\nAmino Acids. 2013.\nPMID:\n23732998\nReview.\nAdolescent health across Asia Pacific, 2000-23: a systematic analysis for the Global Burden of Disease Study 2023.\nGBD 2023 Asia Pacific Adolescent Health Collaborators.\nLancet Child Adolesc Health. 2026.\nPMID:\n42679829\nLong-term adverse effects following COVID-19 vaccination: A comparative analysis of Oxford AstraZeneca, Pfizer-BioNTech, and Moderna vaccines.\nAldali JA, et al.\nMedicine (Baltimore). 2026.\nPMID:\n42675735\nFree PMC article.\nSee more trending articles\nPubMed Updates\nFeature updates and other PubMed highlights\nNew & Noteworthy RSS Feed Has a New URL\nApril 16, 2026\nPubMed's New & Noteworthy RSS feed provides another way to stay up to date with the latest news published in the NLM Technical Bulletin for PubMed.\nArticle Type Filters Updated to Reflect MeSH Changes to Publication Types\nMarch 31, 2026\nThe article type filters in PubMed have been updated to reflect Annual MeSH Processing (AMP) updates to Publication Types, including discontinued publication types from the past several years.\nPubMed 2026 Baseline Released\nJanuary 30, 2026\nThe National Library of Medicine (NLM) has released the 2026 production year PubMed Baseline files.\nPubMed 2026 Baseline Release Scheduled\nJanuary 22, 2026\nThe release of updated MEDLINE citations with 2026 MeSH is scheduled for the week of January 26, 2026.\nNCBI Literature Resources\nMeSH\nPMC\nBookshelf\nDisclaimer\nThe PubMed wordmark and PubMed logo are registered trademarks of the U.S. Department of Health and Human Services (HHS). Unauthorized use of these marks is strictly prohibited.",
+      "ai_extracted_entities": []
+    }
+  ]
+}
