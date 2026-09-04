@@ -285,11 +285,11 @@ async def set_retrieval_mode(payload: Dict[str, str]):
 
 
 def get_frontend_index_path() -> Path:
-    """Find index.html in either root frontend/ or src/frontend/ directory."""
-    for candidate in [BASE_DIR / "frontend" / "index.html", BASE_DIR / "src" / "frontend" / "index.html"]:
+    """Find index.html in src/frontend/ directory."""
+    for candidate in [BASE_DIR / "src" / "frontend" / "index.html", BASE_DIR / "frontend" / "index.html"]:
         if candidate.exists():
             return candidate
-    return BASE_DIR / "frontend" / "index.html"
+    return BASE_DIR / "src" / "frontend" / "index.html"
 
 
 @app.get("/", tags=["Frontend"])

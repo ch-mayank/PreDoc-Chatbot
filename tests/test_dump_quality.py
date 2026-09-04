@@ -1,9 +1,14 @@
 """Regression tests for raw ingestion dump quality control."""
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 from backend.agents.dump_quality_agent import DumpQualityAgent
 

@@ -1,6 +1,13 @@
 """Unit tests for Data Contracts, Edge Case Demographic Handling, and Ambiguity Loops."""
 
+import sys
 import unittest
+from pathlib import Path
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
 from backend.schemas import QueryRequest, QueryResponse, ConditionMatrixRow
 from backend.agents.input_validation_agent import InputValidationAgent
 

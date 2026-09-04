@@ -2,7 +2,8 @@ FROM python:3.12-slim
 
 # Prevent bytecode creation and enforce unbuffered stdout/stderr logging
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH="/app/src:/app"
 
 # 1. Create a dedicated non-root user with explicit UID/GID 1000 for volume compatibility
 RUN groupadd -g 1000 appgroup && \

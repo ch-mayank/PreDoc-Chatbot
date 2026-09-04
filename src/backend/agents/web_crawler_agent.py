@@ -88,6 +88,8 @@ class WebCrawlerAgent:
         model: Optional[str] = None,
     ):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.catalog_path = catalog_path or (base_dir / "data" / "sources" / "source_catalog.json")
         self.dumps_dir = dumps_dir or (base_dir / "data" / "sources" / "dumps" / "web_extractions")
         self.dumps_dir.mkdir(parents=True, exist_ok=True)

@@ -21,6 +21,8 @@ class KnowledgeBaseAuditorAgent:
 
     def __init__(self, kb_dir: Optional[Path] = None, model: Optional[str] = None):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.kb_dir = kb_dir or (base_dir / "data" / "knowledge_base")
         from backend.config import AGENT_AUDITOR_MODEL
         self.model = model or AGENT_AUDITOR_MODEL

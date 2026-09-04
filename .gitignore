@@ -57,6 +57,7 @@ htmlcov/
 
 # LlamaIndex / Vector Storage artifacts
 storage/
+scratch/
 *.log
 data/sources/dumps/*.tmp
 

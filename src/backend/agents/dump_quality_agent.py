@@ -15,6 +15,8 @@ class DumpQualityAgent:
 
     def __init__(self, dumps_root: Optional[Path] = None):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.dumps_root = dumps_root or (base_dir / "data" / "sources" / "dumps")
 
     def _load_json(self, path: Path) -> Any:

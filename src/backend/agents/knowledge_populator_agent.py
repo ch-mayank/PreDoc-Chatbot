@@ -34,6 +34,8 @@ class KnowledgePopulatorAgent:
         model: Optional[str] = None,
     ):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.kb_dir = kb_dir or (base_dir / "data" / "knowledge_base")
         self.template_path = template_path or (base_dir / "data" / "governance" / "template.md")
         from backend.config import AGENT_POPULATOR_MODEL
@@ -186,6 +188,8 @@ purpose: Enterprise Clinical AI Knowledge Base for Demographic Matching, Symptom
 
         # Gather dumps
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         pdf_dump = base_dir / "data" / "sources" / "dumps" / "pdf_extractions" / "master_clinical_conditions_dump.json"
         nlm_dump = base_dir / "data" / "sources" / "dumps" / "web_extractions" / "nlm_clinical_tables_dump.json"
 

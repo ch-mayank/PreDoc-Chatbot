@@ -1,7 +1,13 @@
 """Unit tests for BM25 + Vector Hybrid Retrieval and Resilient OpenRouter Client."""
 
+import sys
 import unittest
+from pathlib import Path
 from llama_index.core.schema import TextNode
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 from backend.openai_client import GenericOpenAIClient, FREE_MODELS
 from backend.rag import ClinicalHybridRetriever, create_hybrid_retriever

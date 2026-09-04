@@ -32,6 +32,8 @@ class PDFExtractorAgent:
 
     def __init__(self, raw_pdfs_dir: Optional[Path] = None, dumps_dir: Optional[Path] = None):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.raw_pdfs_dir = raw_pdfs_dir or (base_dir / "data" / "sources" / "raw_pdfs")
         self.dumps_dir = dumps_dir or (base_dir / "data" / "sources" / "dumps" / "pdf_extractions")
         self.dumps_dir.mkdir(parents=True, exist_ok=True)

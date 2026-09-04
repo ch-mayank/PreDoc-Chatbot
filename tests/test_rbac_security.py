@@ -1,7 +1,13 @@
 """Unit tests for Dual RBAC Authentication and Metrics Endpoints."""
 
+import sys
 import unittest
+from pathlib import Path
 from fastapi.testclient import TestClient
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 from backend.main import app
 from backend import config

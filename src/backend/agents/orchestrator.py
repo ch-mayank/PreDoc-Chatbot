@@ -27,6 +27,8 @@ class MasterIngestionOrchestrator:
 
     def __init__(self):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        if base_dir.name == "src":
+            base_dir = base_dir.parent
         self.pdf_agent = PDFExtractorAgent()
         self.web_agent = WebCrawlerAgent()
         self.populator_agent = KnowledgePopulatorAgent()

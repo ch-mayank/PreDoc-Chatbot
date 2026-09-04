@@ -6,8 +6,13 @@ us a quick safety net while the retrieval and prompts continue to evolve.
 
 import json
 import os
+import sys
 import unittest
 from pathlib import Path
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
 os.environ.setdefault("ADMIN_USER", "admin")
