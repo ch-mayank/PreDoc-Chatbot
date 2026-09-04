@@ -33,13 +33,13 @@ def verify_user_or_admin_credentials(
     credentials: HTTPBasicCredentials = Depends(security_basic),
 ) -> Dict[str, str]:
     """Validate credentials for the primary consultation UI (permits both User and Admin)."""
-    is_admin = secrets.compare_digest(credentials.username, ADMIN_USER) and secrets.compare_digest(
+    is_admin = bool(ADMIN_USER and ADMIN_PASS) and secrets.compare_digest(credentials.username, ADMIN_USER) and secrets.compare_digest(
         credentials.password, ADMIN_PASS
     )
     if is_admin:
         return {"username": credentials.username, "role": "admin"}
 
-    is_user = secrets.compare_digest(credentials.username, USER_USER) and secrets.compare_digest(
+    is_user = bool(USER_USER and USER_PASS) and secrets.compare_digest(credentials.username, USER_USER) and secrets.compare_digest(
         credentials.password, USER_PASS
     )
     if is_user:
@@ -56,14 +56,14 @@ def verify_admin_credentials(
     credentials: HTTPBasicCredentials = Depends(security_basic),
 ) -> Dict[str, str]:
     """Validate credentials specifically for the Operations & Telemetry Dashboard (Admin only)."""
-    is_admin = secrets.compare_digest(credentials.username, ADMIN_USER) and secrets.compare_digest(
+    is_admin = bool(ADMIN_USER and ADMIN_PASS) and secrets.compare_digest(credentials.username, ADMIN_USER) and secrets.compare_digest(
         credentials.password, ADMIN_PASS
     )
     if is_admin:
         return {"username": credentials.username, "role": "admin"}
 
     # If valid standard user credentials were supplied instead of admin credentials
-    is_user = secrets.compare_digest(credentials.username, USER_USER) and secrets.compare_digest(
+    is_user = bool(USER_USER and USER_PASS) and secrets.compare_digest(credentials.username, USER_USER) and secrets.compare_digest(
         credentials.password, USER_PASS
     )
     if is_user:

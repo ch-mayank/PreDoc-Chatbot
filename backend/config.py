@@ -58,21 +58,19 @@ def get_secret(secret_name: str, env_name: str, default: Optional[str] = None) -
 
 # Role-Based Access Control (RBAC) Credentials
 # 1. Administrator Role (Full access to /dashboard, /api/metrics, /api/system/status, and consultations)
-ADMIN_USER = get_secret("admin_user", "ADMIN_USER", "admin")
-ADMIN_PASS = get_secret("admin_pass", "ADMIN_PASS", "password")
+ADMIN_USER = get_secret("admin_user", "ADMIN_USER", default="").strip()
+ADMIN_PASS = get_secret("admin_pass", "ADMIN_PASS", default="").strip()
 ADMIN_API_KEY = get_secret("admin_api_key", "ADMIN_API_KEY", default=os.getenv("ADMIN_API_KEY", "")).strip()
 
 # 2. Clinician / Standard User Role (Access to / Consultation UI and /api/chat consultations)
 USER_USER = (
     get_secret("user_user", "USER_USER", default="")
     or get_secret("user_username", "USER_USERNAME", default="")
-    or "clinician"
-)
+).strip()
 USER_PASS = (
     get_secret("user_pass", "USER_PASS", default="")
     or get_secret("user_password", "USER_PASSWORD", default="")
-    or "clinician123"
-)
+).strip()
 USER_API_KEY = (
     get_secret("clinical_api_key", "CLINICAL_API_KEY", default="")
     or get_secret("user_api_key", "USER_API_KEY", default="")
