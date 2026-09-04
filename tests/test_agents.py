@@ -42,6 +42,38 @@ class TestClinicalAgents(unittest.TestCase):
         self.assertIn("Does your chest discomfort feel like", questions)
         self.assertTrue(questions.endswith('"') or questions.endswith("?"))
 
+    def test_probing_agent_no_headache_for_neuropathy(self):
+        """Neuropathy should never ask headache questions."""
+        agent = ClinicalProbingAgent()
+        questions = agent.generate_questions(
+            disease="Diabetic Neuropathy",
+            primary="Peripheral nerve numbness and tingling",
+            secondary="Lower leg burning sensation",
+        )
+        self.assertNotIn("headache", questions.lower())
+        self.assertIn("numbness", questions.lower())
+
+    def test_probing_agent_sciatica_and_radiculopathy(self):
+        """Sciatica and radiculopathy questions should probe dermatomal radiation and red flags."""
+        agent = ClinicalProbingAgent()
+        questions = agent.generate_questions(
+            disease="Sciatica (Lumbar Radiculopathy)",
+            primary="Leg pain radiating down back of thigh",
+            secondary="Lumbar pain",
+        )
+        self.assertIn("radiate", questions.lower())
+        self.assertIn("bowel", questions.lower())
+
+    def test_probing_agent_generate_conversational_probing(self):
+        """Conversational probing should address missing dimensions."""
+        agent = ClinicalProbingAgent()
+        questions = agent.generate_conversational_probing(
+            query_text="leg pain in adult male",
+            missing_dimensions=["Specific anatomical location & radiation path", "Onset duration & timing"]
+        )
+        self.assertGreaterEqual(len(questions), 1)
+        self.assertTrue(any("leg" in q.lower() for q in questions))
+
     def test_auditor_agent_compliance(self):
         import tempfile
         auditor = KnowledgeBaseAuditorAgent()

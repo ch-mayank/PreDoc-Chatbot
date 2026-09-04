@@ -501,6 +501,20 @@
             line-height: 1.5;
         }
 
+        .triage-probing {
+            background: rgba(8, 127, 140, 0.12);
+            color: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+        }
+
+        .specificity-banner {
+            background: rgba(8, 127, 140, 0.06);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
+
         /* ==========================================================================
            OPERATIONS DASHBOARD STYLES
            ========================================================================== */
@@ -918,6 +932,39 @@
                 Clinical Reference & Triage Evaluation
             </div>
             <div id="resultsContent" class="results-content"></div>
+
+            <!-- Interactive Multi-Turn Clinical Probing Container -->
+            <div id="probingContainer" style="display: none; margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border-subtle);">
+                <div class="specificity-banner" id="specificityBanner">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                            <span class="beacon-dot"></span>
+                            <span id="specificityLabel">Clinical Intake Specificity: 35%</span>
+                        </span>
+                        <span id="specificityTarget" style="font-size: 0.75rem; color: var(--text-muted);">Confidence Target: 70%</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
+                        <div id="specificityBar" style="height: 100%; width: 35%; background: var(--primary-blue); transition: width 0.4s ease;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <label for="inputFollowup" style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px;">
+                        Provide Additional Clinical Details:
+                    </label>
+                    <textarea id="inputFollowup" class="query-area" style="min-height: 80px;" placeholder="Answer the probing questions above (e.g. onset, radiation down leg, numbness, or aggravating factors)..."></textarea>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <button type="button" id="btnSubmitFollowup" class="btn-analyze" style="flex: 1; min-width: 220px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Submit Clarifying Details & Continue
+                        </button>
+                        <button type="button" id="btnForceEvaluate" class="btn-refresh" style="padding: 10px 18px; font-size: 0.82rem;">
+                            Evaluate With Current Info
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -1333,20 +1380,107 @@
     fetchDashboardTelemetry();
     setInterval(fetchDashboardTelemetry, 20000);
 
-    // Clinical Presentation Analysis Form Submission
-    btnAnalyze.addEventListener('click', async () => {
-        const queryText = inputQuery.value.trim();
-        const apiKey = inputApiKey.value.trim();
+    // Multi-Turn Interactive Clinical Intake State
+    let consultationHistory = [];
+    let currentTurn = 1;
+    let initialSymptomQuery = '';
 
-        if (!queryText) {
-            alert('Please enter presenting symptoms before analyzing.');
-            inputQuery.focus();
-            return;
+    function renderClinicalResponse(data) {
+        const textResponse = data.answer || data.response || 'No clinical guidance returned.';
+        const renderMarkdown = window.marked?.parse || ((val) => val.replace(/\n/g, '<br>'));
+        let html = renderMarkdown(textResponse);
+
+        // Replace triage tier text with bold badges
+        html = html.replace(/Level 1 \(Red(?:\s*-\s*Emergency)?\)/gi, '<span class="triage-badge triage-red">Level 1 (Red Emergency)</span>');
+        html = html.replace(/Level 2 \(Yellow(?:\s*-\s*Urgent[^\)]*)?\)/gi, '<span class="triage-badge triage-yellow">Level 2 (Yellow Urgent)</span>');
+        html = html.replace(/Level 3 \(Green(?:\s*-\s*Non-Urgent[^\)]*)?\)/gi, '<span class="triage-badge triage-green">Level 3 (Green Routine)</span>');
+        html = html.replace(/Clarification & Active Probing/gi, '<span class="triage-badge triage-probing">Clarification & Active Probing</span>');
+
+        // Format alert callouts
+        html = html.replace(/\[!NOTE\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout">$1</div>');
+        html = html.replace(/\[!IMPORTANT\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout" style="border-left-color: #d97706; background: rgba(217,119,6,0.1);">$1</div>');
+        if (html.includes('Emergency warning:')) {
+            html = html.replace(/(\*\*Emergency warning:\*\*.*?)(?=<h|$)/s, '<div class="emergency-callout">$1</div>');
         }
 
+        resultsContent.innerHTML = html;
+
+        // Manage Interactive Clinical Probing Container
+        const probingEl = document.getElementById('probingContainer');
+        const specBar = document.getElementById('specificityBar');
+        const specLbl = document.getElementById('specificityLabel');
+        const specTgt = document.getElementById('specificityTarget');
+        const followupInput = document.getElementById('inputFollowup');
+
+        if (data.is_clarification_needed) {
+            probingEl.style.display = 'block';
+            const pct = Math.round((data.specificity_score || 0) * 100);
+            const targetPct = Math.round((data.specificity_threshold || 0.70) * 100);
+            specBar.style.width = Math.max(8, Math.min(100, pct)) + '%';
+            specLbl.innerText = `Clinical Intake Specificity: ${pct}%`;
+            specTgt.innerText = `Confidence Target: ${targetPct}%`;
+            followupInput.value = '';
+            setTimeout(() => {
+                followupInput.focus();
+                probingEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        } else {
+            probingEl.style.display = 'none';
+        }
+    }
+
+    async function sendConsultationQuery(queryText, forceEval = false) {
+        const apiKey = inputApiKey.value.trim();
         if (!apiKey) {
             alert('Please enter your API Key in the field before analyzing.');
             inputApiKey.focus();
+            return;
+        }
+
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
+            },
+            body: JSON.stringify({
+                question: queryText,
+                age: selectAge.value,
+                sex: selectSex.value,
+                categories: selectedSpecialties,
+                history: consultationHistory,
+                turn_count: currentTurn,
+                force_evaluation: forceEval
+            })
+        });
+
+        if (!res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            let errorMessage = `Server returned HTTP ${res.status}`;
+            if (res.status === 401 || res.status === 403) {
+                errorMessage = 'Authentication failed. Please enter a valid API Key.';
+            }
+            if (contentType.includes('application/json')) {
+                const err = await res.json();
+                errorMessage = err.detail || err.message || errorMessage;
+            } else {
+                const text = (await res.text()).trim();
+                if (text) errorMessage = text.slice(0, 180);
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await res.json();
+        consultationHistory.push({ role: 'assistant', content: data.answer || data.response || '' });
+        renderClinicalResponse(data);
+    }
+
+    // Initial Symptom Form Submission
+    btnAnalyze.addEventListener('click', async () => {
+        const queryText = inputQuery.value.trim();
+        if (!queryText) {
+            alert('Please enter presenting symptoms before analyzing.');
+            inputQuery.focus();
             return;
         }
 
@@ -1354,64 +1488,62 @@
         btnAnalyze.innerHTML = '<span class="beacon-dot"></span> Consulting Clinical Retrieval Engine & Differentials...';
         resultsCard.style.display = 'block';
         resultsContent.innerHTML = '<p style="color: var(--text-muted);">Consulting medical reference databases, evaluating triage priority tier, and cross-referencing clinical matrices...</p>';
+        document.getElementById('probingContainer').style.display = 'none';
         resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
+        consultationHistory = [{ role: 'user', content: queryText }];
+        currentTurn = 1;
+        initialSymptomQuery = queryText;
+
         try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey
-                },
-                body: JSON.stringify({
-                    question: queryText,
-                    age: selectAge.value,
-                    sex: selectSex.value,
-                    categories: selectedSpecialties
-                })
-            });
-
-            if (!res.ok) {
-                const contentType = res.headers.get('content-type') || '';
-                let errorMessage = `Server returned HTTP ${res.status}`;
-                if (res.status === 401 || res.status === 403) {
-                    errorMessage = 'Authentication failed. Please enter a valid API Key.';
-                }
-                if (contentType.includes('application/json')) {
-                    const err = await res.json();
-                    errorMessage = err.detail || err.message || errorMessage;
-                } else {
-                    const text = (await res.text()).trim();
-                    if (text) errorMessage = text.slice(0, 180);
-                }
-                throw new Error(errorMessage);
-            }
-
-            const data = await res.json();
-            const textResponse = data.answer || data.response || 'No clinical guidance returned.';
-            
-            // Render Markdown
-            const renderMarkdown = window.marked?.parse || ((val) => val.replace(/\n/g, '<br>'));
-            let html = renderMarkdown(textResponse);
-
-            // Replace triage tier text with bold badges
-            html = html.replace(/Level 1 \(Red\)/g, '<span class="triage-badge triage-red">Level 1 (Red Emergency)</span>');
-            html = html.replace(/Level 2 \(Yellow\)/g, '<span class="triage-badge triage-yellow">Level 2 (Yellow Urgent)</span>');
-            html = html.replace(/Level 3 \(Green\)/g, '<span class="triage-badge triage-green">Level 3 (Green Routine)</span>');
-
-            // Format alert callouts
-            html = html.replace(/\[!NOTE\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout">$1</div>');
-            html = html.replace(/\[!IMPORTANT\]\s*(.*?)(?=\n\n|<h|$)/s, '<div class="notice-callout" style="border-left-color: #d97706; background: rgba(217,119,6,0.1);">$1</div>');
-            if (html.includes('Emergency warning:')) {
-                html = html.replace(/(\*\*Emergency warning:\*\*.*?)(?=<h|$)/s, '<div class="emergency-callout">$1</div>');
-            }
-
-            resultsContent.innerHTML = html;
+            await sendConsultationQuery(queryText, false);
         } catch (err) {
             resultsContent.innerHTML = `<div class="emergency-callout">Unable to complete clinical consultation: ${err.message || 'Unknown network error'}. Please check your credentials and retry.</div>`;
         } finally {
             btnAnalyze.disabled = false;
             btnAnalyze.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze Presentation & Retrieve Triage Guidance';
+        }
+    });
+
+    // Clarifying Details Follow-Up Submission
+    document.getElementById('btnSubmitFollowup').addEventListener('click', async () => {
+        const followup = document.getElementById('inputFollowup').value.trim();
+        if (!followup) {
+            alert('Please provide answers or additional details regarding your symptoms.');
+            document.getElementById('inputFollowup').focus();
+            return;
+        }
+
+        const btnFollowup = document.getElementById('btnSubmitFollowup');
+        btnFollowup.disabled = true;
+        btnFollowup.innerHTML = '<span class="beacon-dot"></span> Evaluating Clinical Clarifications...';
+
+        consultationHistory.push({ role: 'user', content: followup });
+        currentTurn++;
+
+        try {
+            await sendConsultationQuery(followup, false);
+        } catch (err) {
+            alert('Clarification error: ' + err.message);
+        } finally {
+            btnFollowup.disabled = false;
+            btnFollowup.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Submit Clarifying Details & Continue';
+        }
+    });
+
+    // Bypass Active Probing & Force Immediate Triage
+    document.getElementById('btnForceEvaluate').addEventListener('click', async () => {
+        const btnForce = document.getElementById('btnForceEvaluate');
+        btnForce.disabled = true;
+        btnForce.innerText = 'Evaluating...';
+
+        try {
+            await sendConsultationQuery(initialSymptomQuery || inputQuery.value.trim(), true);
+        } catch (err) {
+            alert('Evaluation error: ' + err.message);
+        } finally {
+            btnForce.disabled = false;
+            btnForce.innerText = 'Evaluate With Current Info';
         }
     });
 </script>

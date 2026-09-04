@@ -127,3 +127,134 @@ class InputValidationAgent:
                 return True, clarification
 
         return False, None
+
+    def evaluate_clinical_specificity(
+        self,
+        query_text: str,
+        history: Optional[list] = None,
+        age: Optional[str] = None,
+        sex: Optional[str] = None
+    ) -> Tuple[float, dict, list]:
+        """Evaluate clinical presentation completeness across 5 diagnostic dimensions.
+
+        Dimensions evaluated (SOCRATES / OPQRST framework):
+        1. Location & Radiation (Specific anatomical site vs generic body region)
+        2. Onset & Timing (Duration, acute vs gradual, chronicity)
+        3. Character & Quality (Sensory description, pain scale, severity)
+        4. Functional Modifiers & Aggravating/Relieving Factors (Movement, triggers, rest)
+        5. Red Flags & Associated Systemic Signs (Fever, bowel/bladder, neurological deficits)
+
+        Returns:
+            (specificity_score [0.0 - 1.0], dimension_flags_dict, missing_dimensions_list)
+        """
+        import re
+
+        # Combine current query with historical user turns to assess cumulative context
+        full_text = query_text.lower()
+        if history:
+            for item in history:
+                if isinstance(item, dict) and item.get("role") == "user":
+                    full_text += " " + str(item.get("content", "")).lower()
+
+        tokens = set(re.findall(r"\w+", full_text))
+
+        # 1. Location & Radiation
+        specific_sites = {
+            "calf", "thigh", "knee", "shin", "foot", "feet", "toes", "ankle", "groin",
+            "buttock", "gluteal", "lumbar", "sciatic", "forearm", "wrist", "hand", "fingers",
+            "elbow", "shoulder", "sternum", "retrosternal", "epigastric", "ruq", "rlq",
+            "flank", "temple", "occipital", "frontal", "cervical", "spine", "sacrum",
+            "left", "right", "bilateral", "unilateral", "radiating", "radiates", "shooting"
+        }
+        generic_sites = {"leg", "arm", "body", "head", "stomach", "chest", "back", "skin", "joint"}
+
+        has_specific_loc = bool(tokens & specific_sites) or bool(re.search(r"\b(down|into|to|across)\s+the\b", full_text))
+        has_generic_loc = bool(tokens & generic_sites) or has_specific_loc
+
+        # 2. Onset & Timing
+        # Disregard demographic age expressions (e.g., '30-45 years', '40 yo', '50 years old')
+        clean_text_timing = re.sub(r"\b\d+\s*(?:-\s*\d+)?\s*(?:years|yrs|yo|y/o)(?:\s*old)?\b", "", full_text)
+        clean_tokens_timing = set(re.findall(r"\w+", clean_text_timing))
+
+        timing_markers = {
+            "day", "days", "hour", "hours", "week", "weeks", "month", "months",
+            "minute", "minutes", "acute", "chronic", "sudden",
+            "gradual", "intermittent", "constant", "recurrent", "since", "yesterday",
+            "morning", "night", "started", "onset", "abrupt", "insidious", "woke"
+        }
+        has_onset_timing = (
+            bool(clean_tokens_timing & timing_markers)
+            or bool(re.search(r"\b\d+\s*(?:d|w|m|h|hrs|days|weeks|months)\b", clean_text_timing))
+            or bool(re.search(r"\bfor\s+\d+\s+years?\b", clean_text_timing))
+        )
+
+        # 3. Character & Quality
+        character_markers = {
+            "sharp", "dull", "throbbing", "burning", "aching", "cramping", "stabbing",
+            "shooting", "electric", "tingling", "numbness", "numb", "pins", "needles",
+            "tightness", "tight", "pressure", "crushing", "mild", "moderate", "severe",
+            "worst", "unbearable", "spasm", "stiff", "stiffness", "heavy", "heaviness",
+            "tearing", "pounding", "splitting"
+        }
+        has_character = bool(tokens & character_markers) or bool(re.search(r"\b\d+\s*/\s*10\b", full_text))
+
+        # 4. Functional Modifiers & Triggers
+        modifier_markers = {
+            "walking", "sitting", "standing", "bending", "lifting", "rest", "resting",
+            "movement", "coughing", "sneezing", "exercise", "exertion", "eating",
+            "food", "better", "worse", "aggravated", "relieved", "triggers", "trigger",
+            "limp", "limping", "weight", "bearing", "lying", "recumbent", "climbing",
+            "motion", "touch", "palpation", "breathing", "inhalation"
+        }
+        has_modifiers = bool(tokens & modifier_markers)
+
+        # 5. Red Flags & Associated Signs (Positive or Denied)
+        redflag_markers = {
+            "fever", "chills", "sweat", "sweating", "weight", "nausea", "vomiting",
+            "diarrhea", "bowel", "bladder", "incontinence", "saddle", "trauma", "fall",
+            "injury", "swelling", "edema", "redness", "erythema", "warmth", "dyspnea",
+            "breath", "dizziness", "syncope", "fainting", "paralysis", "weakness",
+            "droop", "confusion", "loss", "denies", "denied"
+        }
+        has_redflags = bool(tokens & redflag_markers)
+
+        # Dimension weights
+        score = 0.0
+        if has_specific_loc:
+            score += 0.25
+        elif has_generic_loc:
+            score += 0.10
+
+        if has_onset_timing:
+            score += 0.20
+        if has_character:
+            score += 0.20
+        if has_modifiers:
+            score += 0.20
+        if has_redflags:
+            score += 0.15
+
+        dimensions = {
+            "anatomical_site": has_specific_loc or has_generic_loc,
+            "specific_localization": has_specific_loc,
+            "onset_timing": has_onset_timing,
+            "character_quality": has_character,
+            "functional_modifiers": has_modifiers,
+            "systemic_redflags": has_redflags,
+        }
+
+        missing = []
+        if not has_specific_loc:
+            missing.append("Specific anatomical location & radiation path (e.g., thigh, calf, radiating from back)")
+        if not has_onset_timing:
+            missing.append("Onset duration & timing (how many days/weeks, sudden vs. gradual)")
+        if not has_character:
+            missing.append("Symptom quality & severity (sharp, burning, shooting, dull, or pain score /10)")
+        if not has_modifiers:
+            missing.append("Aggravating or relieving factors (worse when walking, sitting, bending, or at rest)")
+        if not has_redflags:
+            missing.append("Associated signs & red flags (fever, numbness, weakness, or bowel/bladder changes)")
+
+        score = round(min(1.0, score), 2)
+        return score, dimensions, missing
+

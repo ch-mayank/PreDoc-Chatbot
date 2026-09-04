@@ -252,7 +252,7 @@ class GenericOpenAIClient:
             fallback_embedding_dim
             or os.getenv("FALLBACK_EMBEDDING_DIM", "1024")
         )
-        fallback_model = (
+        self.fallback_model = (
             fallback_model
             or os.getenv("FALLBACK_LLM_MODEL", "google/gemma-4-26b-a4b-it:free")
         )
@@ -484,14 +484,13 @@ class GenericOpenAIClient:
             raise RuntimeError(f"Primary endpoint failed on {target_model} and no fallback endpoint is configured.")
 
         candidate_fb_models = [m for m in [
+            "google/gemma-4-26b-a4b-it:free",
+            "liquid/lfm-2.5-2.6b:free",
+            self.fallback_model if self.fallback_model and "free" in self.fallback_model else None,
             "meta-llama/llama-3.3-70b-instruct",
             "meta/llama-3.3-70b-instruct",
             "meta-llama/llama-3.1-8b-instruct",
-            "meta/llama-3.1-8b-instruct",
             self.fallback_model if not "vision" in (self.fallback_model or "") else None,
-            "google/gemma-3-12b-it",
-            "google/gemma-4-26b-a4b-it:free",
-            "liquid/lfm-2.5-2.6b:free",
         ] if m]
         seen_models = set()
         fallback_models_queue = []

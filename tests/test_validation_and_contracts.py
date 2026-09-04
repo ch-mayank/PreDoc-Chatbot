@@ -94,6 +94,39 @@ class TestDataContractsAndValidation(unittest.TestCase):
         is_ambiguous, _ = self.validator.check_ambiguity("severe crushing chest pain")
         self.assertFalse(is_ambiguous)
 
+    # --- Clinical Specificity Gating & Confidence Threshold ---
+
+    def test_specificity_low_on_vague_leg_pain(self):
+        """Vague complaint without onset/character/radiation must score below the 0.70 threshold."""
+        score, dims, missing = self.validator.evaluate_clinical_specificity("leg pain in an adult male (30-45 years)")
+        self.assertLess(score, 0.70)
+        self.assertFalse(dims["specific_localization"])
+        self.assertFalse(dims["onset_timing"])
+        self.assertFalse(dims["character_quality"])
+        self.assertGreater(len(missing), 0)
+
+    def test_specificity_high_on_detailed_sciatica(self):
+        """Detailed clinical presentation with onset/character/radiation/red-flags must meet >= 0.70 threshold."""
+        score, dims, missing = self.validator.evaluate_clinical_specificity(
+            "sharp shooting right leg pain down back of calf for 2 weeks, worse when sitting, no bowel or bladder changes"
+        )
+        self.assertGreaterEqual(score, 0.70)
+        self.assertTrue(dims["specific_localization"])
+        self.assertTrue(dims["onset_timing"])
+        self.assertTrue(dims["character_quality"])
+        self.assertTrue(dims["functional_modifiers"])
+        self.assertTrue(dims["systemic_redflags"])
+
+    def test_multi_turn_history_accumulates_specificity(self):
+        """Multi-turn cumulative intake must accumulate specificity from previous turns."""
+        history = [{"role": "user", "content": "leg pain in an adult male (30-45 years)"}]
+        followup = "started 2 weeks ago, sharp burning down back of calf worse when walking, no numbness or fever"
+        score, dims, _ = self.validator.evaluate_clinical_specificity(followup, history=history)
+        self.assertGreaterEqual(score, 0.70)
+        self.assertTrue(dims["specific_localization"])
+        self.assertTrue(dims["onset_timing"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

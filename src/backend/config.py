@@ -146,6 +146,10 @@ AI_PROVIDER = "primary"
 GLOBAL_RATE_LIMIT_RPM = int(os.getenv("GLOBAL_RATE_LIMIT_RPM", "30"))
 GLOBAL_RATE_LIMIT_RPD = int(os.getenv("GLOBAL_RATE_LIMIT_RPD", "50000"))
 
+# Clinical Intake & Probing Confidence Thresholds
+CLINICAL_SPECIFICITY_THRESHOLD = float(os.getenv("CLINICAL_SPECIFICITY_THRESHOLD", "0.70"))
+PROBING_MAX_TURNS = int(os.getenv("PROBING_MAX_TURNS", "3"))
+
 # Chunking Configuration
 Settings.chunk_size = 256
 Settings.chunk_overlap = 20

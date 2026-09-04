@@ -8,7 +8,7 @@ Defines strict JSON schemas for:
 """
 
 import re
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -47,10 +47,12 @@ class QueryRequest(BaseModel):
     categories: Optional[List[str]] = Field(default_factory=list, description="Target medical specialties")
     age: Optional[Union[str, int]] = Field(None, description="Patient age (0-125) or clinical bracket")
     sex: Optional[str] = Field(None, description="Patient biological sex (Male, Female, Other, Unspecified)")
+    history: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Multi-turn conversation history [{'role': 'user'|'assistant', 'content': '...'}]")
+    turn_count: Optional[int] = Field(1, description="Current intake round turn count")
+    force_evaluation: bool = Field(False, description="Bypass probing threshold and force immediate clinical evaluation")
     sanitization_warnings: List[str] = Field(default_factory=list, description="Audit warnings from edge-case normalization")
 
     @model_validator(mode="before")
-    @classmethod
     def unify_query(cls, data: dict):
         if isinstance(data, dict):
             q = data.get("question") or data.get("message")
@@ -121,6 +123,11 @@ class QueryResponse(BaseModel):
     triage_level: Optional[str] = Field(None, description="Overall triage tier (Level 1 Red, Level 2 Yellow, Level 3 Green)")
     differentials: List[TriageDifferential] = Field(default_factory=list, description="Candidate differential diagnoses")
     probing_questions: List[ClinicalProbingQuestion] = Field(default_factory=list, description="Follow-up diagnostic questions")
+    specificity_score: Optional[float] = Field(None, description="Clinical specificity confidence score between 0.0 and 1.0")
+    specificity_threshold: Optional[float] = Field(None, description="Configured clinical specificity threshold")
+    is_clarification_needed: bool = Field(False, description="True if specificity is below threshold and active probing is ongoing")
+    turn_count: int = Field(1, description="Turn count of consultation")
+    missing_dimensions: List[str] = Field(default_factory=list, description="Clinical dimensions still missing from presentation")
     audit_notes: List[str] = Field(default_factory=list, description="Validation and sanitization audit trail")
 
     @model_validator(mode="after")

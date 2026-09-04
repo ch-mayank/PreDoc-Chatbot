@@ -4,9 +4,13 @@ import re
 from typing import Optional
 
 URGENT_SYMPTOMS = re.compile(
-    r"severe chest pain|pressure in (the )?chest|difficulty breathing|"
-    r"cannot breathe|face drooping|arm weakness|speech difficulty|"
-    r"unconscious|passed out|heavy bleeding|seizure",
+    r"(severe|crushing|tight|radiating|acute|sudden)\s+(?:retrosternal\s+)?chest\s+pain|"
+    r"chest\s+pain\s+(?:radiating|spreading)|pressure in (?:the )?chest|"
+    r"difficulty breathing|shortness of breath|cannot breathe|stridor|asphyxia|"
+    r"face drooping|facial droop|arm weakness|speech difficulty|slurred speech|"
+    r"unconscious|passed out|heavy bleeding|hemorrhage|seizure|convulsion|"
+    r"loss of (?:bowel|bladder)\s+control|saddle anesthesia|cauda equina|"
+    r"sudden (?:paralysis|inability to walk|inability to move)",
     re.IGNORECASE,
 )
 

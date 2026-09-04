@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.agents.input_validation_agent import InputValidationAgent
+from backend.agents.probing_agent import ClinicalProbingAgent
 from backend.agent import create_clinical_agent, ALLOWED_CATEGORIES
 from backend import config
 from backend.config import BASE_DIR, DATA_DIR, PERSIST_DIR, Settings, ADMIN_API_KEY
@@ -31,6 +32,7 @@ logger = logging.getLogger("predoc.server")
 logging.basicConfig(level=logging.INFO)
 
 input_validator = InputValidationAgent()
+clinical_probing_agent = ClinicalProbingAgent()
 
 app_state = {
     "query_engine": None,
@@ -363,20 +365,55 @@ async def chat_endpoint(
             audit_notes=payload.sanitization_warnings
         )
 
-    # Check for ambiguous / underspecified presentation (Ambiguity Feedback Loop)
-    if not emergency_warn:
-        is_ambiguous, clarify_msg = input_validator.check_ambiguity(query_text)
-        if is_ambiguous:
-            return QueryResponse(
-                status="success",
-                authenticated_user=user,
-                answer=clarify_msg,
-                response=clarify_msg,
-                triage_level="Clarification Needed",
-                audit_notes=payload.sanitization_warnings
-            )
+    # Clinical Specificity Gating & Active Probing Dialogue
+    # Evaluate cumulative presentation completeness across 5 clinical dimensions
+    score, dimensions, missing_dims = input_validator.evaluate_clinical_specificity(
+        query_text=query_text,
+        history=payload.history,
+        age=str(payload.age) if payload.age else None,
+        sex=payload.sex
+    )
 
-    # If agent is loaded, run through clinical ReAct agent
+    turn_count = payload.turn_count or 1
+    # Acute red flag emergencies bypass the specificity threshold directly to Level 1 Red triage
+    is_satisfied = bool(emergency_warn) or (score >= config.CLINICAL_SPECIFICITY_THRESHOLD) or payload.force_evaluation or (turn_count >= config.PROBING_MAX_TURNS)
+
+    if not is_satisfied:
+        # Agent is NOT satisfied: Withhold condition dump and generate focused active clinical probing
+        probing_questions = clinical_probing_agent.generate_conversational_probing(
+            query_text=query_text,
+            missing_dimensions=missing_dims,
+            age=str(payload.age) if payload.age else None,
+            sex=payload.sex
+        )
+        if not probing_questions:
+            probing_questions = [
+                "Could you describe the exact onset, location, and severity of your symptoms?",
+                "Are you experiencing any red flags like fever, numbness, or loss of bowel/bladder control?"
+            ]
+
+        formatted_questions = "\n".join([f"{i+1}. **{q}**" for i, q in enumerate(probing_questions)])
+        probing_answer = (
+            f"> [!NOTE]\n"
+            f"> **Clinical Intake & Clarification Needed** (Specificity: {int(score * 100)}% | Threshold: {int(config.CLINICAL_SPECIFICITY_THRESHOLD * 100)}%)\n\n"
+            f"Thank you for sharing your symptoms (`\"{query_text}\"`). To evaluate your presentation safely and narrow down potential differential causes, I need a few more clinical details:\n\n"
+            f"{formatted_questions}\n\n"
+            f"*Please reply with your answers below to continue the clinical assessment, or click 'Evaluate With Current Info' to proceed immediately.*"
+        )
+        return QueryResponse(
+            status="success",
+            authenticated_user=user,
+            answer=probing_answer,
+            response=probing_answer,
+            triage_level="Clarification & Active Probing",
+            specificity_score=score,
+            specificity_threshold=config.CLINICAL_SPECIFICITY_THRESHOLD,
+            is_clarification_needed=True,
+            turn_count=turn_count,
+            missing_dimensions=missing_dims,
+            audit_notes=payload.sanitization_warnings
+        )
+
     # Demographic & specialty context prefix
     context_prefix = ""
     if payload.age or payload.sex:
@@ -417,13 +454,18 @@ async def chat_endpoint(
     context_str = "\n\n---\n\n".join([n.node.get_content() for n in nodes]) if nodes else "Reference Guidelines: WHO/CDC Triage Protocols & ICD-10 Taxonomy."
     citations_str = "\n\n### Clinical References Consulted\n" + "\n".join(citation_lines) if citation_lines else ""
 
-    # 2. Fast Resilient Clinical Decision Synthesis (< 2s)
+    # 2. Fast Resilient Clinical Decision Synthesis (< 2s) with Strict Guardrails
     synthesis_prompt = (
         f"You are PreDoc AI, an enterprise clinical decision support and emergency triage assistant.\n\n"
         f"PATIENT PRESENTATION: {query_text}\n"
         f"{context_prefix}\n\n"
         f"GROUNDED KNOWLEDGE BASE REFERENCE DATA:\n"
         f"{context_str}\n\n"
+        f"CRITICAL CLINICAL SAFETY GUARDRAILS:\n"
+        f"1. TRIAGE LEVEL GUARDRAIL: Never classify uncomplicated sciatica, lumbar muscle strain, mild peripheral neuropathy, or non-life-threatening musculoskeletal pain as 'Level 1 (Red - Emergency)'.\n"
+        f"   - 'Level 1 (Red - Emergency)' is STRICTLY reserved for immediate life-, limb-, or organ-threatening emergencies (e.g. Acute Coronary Syndrome/STEMI, Acute Stroke, Pulmonary Embolism, Anaphylaxis, Sepsis, or Cauda Equina Syndrome with acute bowel/bladder incontinence and saddle anesthesia).\n"
+        f"   - Uncomplicated sciatica, disc bulge without cauda equina, or nerve root irritation MUST be triaged as 'Level 2 (Yellow - Urgent Clinical Review)' or 'Level 3 (Green - Non-Urgent / Routine)'.\n"
+        f"2. ANATOMICAL COHERENCE GUARDRAIL: All differential diagnoses and probing questions MUST strictly align with the patient's presenting anatomical complaint. For lower extremity complaints (such as leg pain), NEVER mention headache, ocular symptoms, or cranial deficits.\n\n"
         f"Provide an immediate, evidence-grounded clinical triage evaluation with this exact structure:\n"
         f"1. **Triage Priority Tier**: Explicitly assign 'Level 1 (Red - Emergency)', 'Level 2 (Yellow - Urgent Clinical Review)', or 'Level 3 (Green - Non-Urgent / Routine)'.\n"
         f"2. **Primary Differential Diagnoses**: List 2-3 most probable conditions with ICD-10 codes and diagnostic rationale.\n"
@@ -438,7 +480,7 @@ async def chat_endpoint(
     try:
         res = client.chat_completion(
             messages=[
-                {"role": "system", "content": "You are PreDoc AI Clinical Decision Support Specialist. Answer directly and concisely without any thinking preamble."},
+                {"role": "system", "content": "You are PreDoc AI Clinical Decision Support Specialist. Answer directly and concisely without any thinking preamble. Adhere strictly to the safety guardrails."},
                 {"role": "user", "content": synthesis_prompt}
             ],
             temperature=0.2,
@@ -452,6 +494,11 @@ async def chat_endpoint(
             authenticated_user=user,
             answer=full_answer,
             response=full_answer,
+            triage_level="Level 1 (Red)" if emergency_warn else None,
+            specificity_score=score,
+            specificity_threshold=config.CLINICAL_SPECIFICITY_THRESHOLD,
+            is_clarification_needed=False,
+            turn_count=turn_count,
             audit_notes=payload.sanitization_warnings
         )
     except Exception as llm_err:
@@ -483,6 +530,11 @@ async def chat_endpoint(
             authenticated_user=user,
             answer=fallback_guidance,
             response=fallback_guidance,
+            triage_level=triage_tier,
+            specificity_score=score,
+            specificity_threshold=config.CLINICAL_SPECIFICITY_THRESHOLD,
+            is_clarification_needed=False,
+            turn_count=turn_count,
             audit_notes=payload.sanitization_warnings
         )
 
