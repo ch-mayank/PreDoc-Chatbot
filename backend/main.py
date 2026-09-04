@@ -14,7 +14,8 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.agents.input_validation_agent import InputValidationAgent
 from backend.agent import create_clinical_agent
-from backend.config import BASE_DIR, DATA_DIR, PERSIST_DIR, Settings
+from backend import config
+from backend.config import BASE_DIR, DATA_DIR, PERSIST_DIR, Settings, ADMIN_API_KEY
 from backend.rag import CHAT_QA_TEMPLATE, load_or_build_index
 from backend.safety import emergency_message, is_clinical_query
 from backend.schemas import QueryRequest, QueryResponse

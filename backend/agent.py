@@ -69,16 +69,24 @@ def create_clinical_agent(
             similarity_top_k=5,
             **({"filters": metadata_filters} if metadata_filters else {}),
         )
-        all_nodes = list(index.docstore.docs.values())
-        filtered_nodes = [
-            node
-            for node in all_nodes
-            if not selected_categories
-            or node.metadata.get("category") in selected_categories
-        ]
-        keyword_retriever = BM25Retriever.from_defaults(
-            nodes=filtered_nodes, similarity_top_k=5
-        )
+        # Cache global BM25 retriever on index to prevent rebuilding index on every call
+        if not hasattr(index, "_cached_bm25"):
+            all_nodes = list(index.docstore.docs.values())
+            index._cached_bm25 = BM25Retriever.from_defaults(nodes=all_nodes, similarity_top_k=5)
+
+        if selected_categories:
+            all_nodes = list(index.docstore.docs.values())
+            filtered_nodes = [
+                node
+                for node in all_nodes
+                if node.metadata.get("category") in selected_categories
+            ]
+            keyword_retriever = BM25Retriever.from_defaults(
+                nodes=filtered_nodes, similarity_top_k=5
+            )
+        else:
+            keyword_retriever = index._cached_bm25
+
         hybrid_retriever = QueryFusionRetriever(
             retrievers=[vector_retriever, keyword_retriever],
             llm=None,
@@ -94,19 +102,23 @@ def create_clinical_agent(
             selected_retriever = keyword_retriever
         else:
             selected_retriever = hybrid_retriever
-        query_engine = RetrieverQueryEngine.from_args(
-            retriever=selected_retriever,
-            text_qa_template=qa_template,
-            use_async=True,
-        )
-        response = await query_engine.aquery(question)
+
+        # Retrieve matching clinical knowledge nodes directly (< 200ms)
+        nodes = await selected_retriever.aretrieve(question)
+        if not nodes and selected_categories:
+            nodes = await vector_retriever.aretrieve(question)
+
         citation_lines = []
         seen_citations = set()
-        for source_node in getattr(response, "source_nodes", []):
+        text_snippets = []
+        for source_node in nodes:
             metadata = source_node.node.metadata
+            category = metadata.get("category", "Clinical Guideline")
+            content = source_node.node.get_content()
+            text_snippets.append(f"[{category}]\n{content}")
             citation = (
                 metadata.get("document", "Unknown document"),
-                metadata.get("category", "Unknown category"),
+                category,
                 metadata.get("version", "unknown version"),
                 metadata.get("effective_date", "unknown date"),
                 metadata.get("reviewed_by", "unknown reviewer"),
@@ -120,8 +132,8 @@ def create_clinical_agent(
                     f"Reviewed by: {citation[4]} | Source: {citation[5]}"
                 )
 
-        citations = "\n\n### References used\n" + "\n".join(citation_lines)
-        return str(response) + (citations if citation_lines else "")
+        citations = "\n\n### References used\n" + "\n".join(citation_lines) if citation_lines else ""
+        return "\n\n---\n\n".join(text_snippets) + citations
 
     medical_search_tool = FunctionTool.from_defaults(
         async_fn=search_medical_reference,
