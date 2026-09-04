@@ -6,6 +6,7 @@ and asks the language model to turn those notes into an answer.
 """
 
 import asyncio  # Stops a remote model request that takes too long.
+from collections import deque  # Stores recent request times for rate limiting.
 import os  # Reads environment variables such as API keys and passwords.
 import secrets  # Compares passwords and API keys without exposing timing clues.
 import shutil  # Removes an old generated index when its embedding model changes.
@@ -17,7 +18,7 @@ from typing import Optional  # Allows a setting to be optional when a default ex
 from dotenv import load_dotenv  # Loads local .env settings during development.
 from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import APIKeyHeader, HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field  # Validates JSON received by the API.
 
@@ -68,6 +69,15 @@ os.environ["OPENAI_API_KEY"] = OPENROUTER_API_KEY
 ADMIN_USER = get_secret("admin_user", "ADMIN_USER", "admin")
 ADMIN_PASS = get_secret("admin_pass", "ADMIN_PASS", "password")
 DEMO_API_KEY = get_secret("demo_api_key", "DEMO_API_KEY", "demo123456")
+
+# This is a process-wide limit shared by every user of this server instance.
+# Change it with RATE_LIMIT_PER_MINUTE in .env or the hosting environment.
+try:
+    RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "15"))
+except ValueError as error:
+    raise ValueError("RATE_LIMIT_PER_MINUTE must be a whole number") from error
+if RATE_LIMIT_PER_MINUTE < 1:
+    raise ValueError("RATE_LIMIT_PER_MINUTE must be at least 1")
 
 # BASE_DIR is the project folder. DATA_DIR contains source documents, while
 # PERSIST_DIR contains the saved vector index used for faster future startups.
@@ -301,6 +311,44 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# The deque contains timestamps for requests received during the last minute.
+# The lock prevents two simultaneous requests from both passing the limit.
+request_times = deque()
+request_rate_lock = asyncio.Lock()
+
+
+@app.middleware("http")
+async def global_rate_limit(request, call_next):
+    """Allow only RATE_LIMIT_PER_MINUTE requests across this server process."""
+    # monotonic() is used because it measures elapsed time and is not affected
+    # if the computer clock is adjusted while the server is running.
+    now = time.monotonic()
+    window_start = now - 60
+
+    async with request_rate_lock:
+        # Remove timestamps that are now older than the one-minute window.
+        while request_times and request_times[0] <= window_start:
+            request_times.popleft()
+
+        if len(request_times) >= RATE_LIMIT_PER_MINUTE:
+            retry_after = max(1, int(request_times[0] + 60 - now))
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": (
+                        "Global request limit exceeded. "
+                        f"Maximum: {RATE_LIMIT_PER_MINUTE} requests per minute."
+                    )
+                },
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        # Count the request before running authentication or the expensive AI
+        # workflow, so rejected traffic cannot consume model resources.
+        request_times.append(now)
+
+    return await call_next(request)
+
 # Only the local development frontends are allowed to make browser requests.
 # This browser-origin rule is separate from the username/password checks below.
 app.add_middleware(
@@ -431,9 +479,18 @@ async def chat_endpoint(
             raise RuntimeError("Agent returned unsupported or malformed output")
         log_timing("Complete chat request", request_started_at)
         return QueryResponse(status="success", authenticated_user=user, answer=answer)
+    except asyncio.TimeoutError:
+        log_timing("Timed-out chat request", request_started_at)
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Agent timed out after 120 seconds while waiting for the remote model.",
+        )
     except Exception as e:
         log_timing("Failed chat request", request_started_at)
+        # Some exceptions, including TimeoutError, have an empty string when
+        # converted to text. Always show a useful error type to the user.
+        error_message = str(e).strip() or type(e).__name__
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Query execution error: {str(e)}",
+            detail=f"Query execution error: {error_message}",
         )
