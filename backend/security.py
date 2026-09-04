@@ -21,6 +21,7 @@ from backend.config import (
     USER_PASS,
     USER_API_KEY,
     DEMO_API_KEY,
+    PREVIOUS_USER_API_KEY,
 )
 
 security_basic = HTTPBasic(auto_error=True)
@@ -119,10 +120,11 @@ def verify_api_key(
     if ADMIN_API_KEY and (token == ADMIN_API_KEY or secrets.compare_digest(token, ADMIN_API_KEY)):
         return ADMIN_API_KEY
 
-    # 2. User / Clinical API key
+    # 2. User / Clinical API key (supports active key and grace-period previous key)
     if (
         (USER_API_KEY and secrets.compare_digest(token, USER_API_KEY))
         or (DEMO_API_KEY and secrets.compare_digest(token, DEMO_API_KEY))
+        or (PREVIOUS_USER_API_KEY and secrets.compare_digest(token, PREVIOUS_USER_API_KEY))
     ):
         return USER_API_KEY or DEMO_API_KEY
 

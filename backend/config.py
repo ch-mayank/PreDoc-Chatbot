@@ -26,15 +26,27 @@ DATA_DIR = BASE_DIR / "data"
 
 
 def get_secret(secret_name: str, env_name: str, default: Optional[str] = None) -> str:
-    """Read a Docker secret first, then .env, then an optional default."""
-    secret_path = Path(f"/run/secrets/{secret_name}")
-    if secret_path.exists():
-        try:
-            value = secret_path.read_text().strip()
-            if value:
-                return value
-        except OSError:
-            pass
+    """Read secrets from Docker secrets, host work-secrets, .env, or default."""
+    candidate_paths = [
+        Path(f"/run/secrets/{secret_name}"),
+        Path(f"/mnt/data/work/work-secrets/{secret_name}"),
+        Path(f"/mnt/data/work/work-secrets/{secret_name}.txt"),
+        Path(f"Z:/data/work/work-secrets/{secret_name}"),
+        Path(f"Z:/data/work/work-secrets/{secret_name}.txt"),
+    ]
+    custom_secrets_dir = os.getenv("SECRETS_DIR")
+    if custom_secrets_dir:
+        candidate_paths.insert(0, Path(custom_secrets_dir) / secret_name)
+        candidate_paths.insert(1, Path(custom_secrets_dir) / f"{secret_name}.txt")
+
+    for p in candidate_paths:
+        if p.exists():
+            try:
+                val = p.read_text(encoding="utf-8").strip()
+                if val:
+                    return val
+            except OSError:
+                pass
 
     value = os.getenv(env_name)
     if value:
@@ -68,6 +80,19 @@ USER_API_KEY = (
     or os.getenv("CLINICAL_API_KEY", "")
 ).strip()
 DEMO_API_KEY = USER_API_KEY  # Backward-compatible alias
+
+# 3. Grace-period rotated key support (Best practice: allow previous key during transition window)
+PREVIOUS_USER_API_KEY = (
+    get_secret("previous_clinical_api_key", "PREVIOUS_CLINICAL_API_KEY", default="")
+).strip()
+
+# Audit log active key on startup to standard logger (only shown in logs, never in source)
+logger.info("==================================================")
+logger.info("[SECURITY AUDIT] PreDoc Beta Security Initialized")
+logger.info("[SECURITY AUDIT] Active Clinical API Key: %s", USER_API_KEY)
+if PREVIOUS_USER_API_KEY:
+    logger.info("[SECURITY AUDIT] Previous Clinical API Key (Grace Period): %s", PREVIOUS_USER_API_KEY)
+logger.info("==================================================")
 
 # 1. Primary OpenAPI Spec Endpoint Configuration
 PRIMARY_API_BASE = (
