@@ -126,7 +126,40 @@ class TestDataContractsAndValidation(unittest.TestCase):
         self.assertTrue(dims["specific_localization"])
         self.assertTrue(dims["onset_timing"])
 
+    # --- Sensory & Psychiatric Intake Validation ---
+
+    def test_hearing_issue_validated_as_clinical(self):
+        """Sensory/hearing complaint 'hearing  issue' must be validated as a legitimate clinical presentation."""
+        is_valid, err = self.validator.validate_clinical_input("hearing  issue")
+        self.assertTrue(is_valid, f"Expected valid clinical input, got error: {err}")
+        self.assertIsNone(err)
+
+    def test_depression_anhedonia_validated_as_clinical(self):
+        """Affective/psychiatric presentation with anhedonia must be validated as legitimate clinical presentation."""
+        is_valid, err = self.validator.validate_clinical_input("i am depressed and i don't feels enjoyment in anything")
+        self.assertTrue(is_valid, f"Expected valid clinical input, got error: {err}")
+        self.assertIsNone(err)
+
+    def test_tinnitus_fullness_validated_as_clinical(self):
+        """ENT complaint with tinnitus and fullness must be validated as clinical."""
+        is_valid, err = self.validator.validate_clinical_input("tinnitus and feeling of ear fullness")
+        self.assertTrue(is_valid, f"Expected valid clinical input, got error: {err}")
+        self.assertIsNone(err)
+
+    def test_non_clinical_greetings_rejected(self):
+        """Conversational chatter must be caught and return standardized non-clinical guidance."""
+        is_valid, err = self.validator.validate_clinical_input("hello how are you doing today")
+        self.assertFalse(is_valid)
+        self.assertIn("Non-Clinical Query Detected", err)
+
+    def test_non_clinical_general_knowledge_rejected(self):
+        """Arbitrary non-medical queries must be rejected."""
+        is_valid, err = self.validator.validate_clinical_input("what is python programming")
+        self.assertFalse(is_valid)
+        self.assertIn("Non-Clinical Query Detected", err)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

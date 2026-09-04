@@ -93,7 +93,9 @@ class ClinicalProbingAgent:
 
         # Anatomical / radiation probing
         if any("location" in d.lower() for d in missing_dimensions):
-            if "leg" in q_lower:
+            if "hear" in q_lower or "ear" in q_lower or "tinnitus" in q_lower:
+                questions.append("Is the hearing issue affecting one ear or both ears, and does it feel completely blocked or muffled?")
+            elif "leg" in q_lower:
                 questions.append("Where exactly in your leg is the discomfort located (thigh, knee, calf, or foot), and does it radiate or shoot from your lower back or hip?")
             elif "arm" in q_lower:
                 questions.append("Where in your arm is the pain (shoulder, forearm, wrist, or fingers), and does it spread from your neck?")
@@ -106,25 +108,40 @@ class ClinicalProbingAgent:
 
         # Onset / timing probing
         if any("onset" in d.lower() for d in missing_dimensions):
-            questions.append("When did this symptom first begin, and did it start suddenly (within minutes/hours) or develop gradually over days or weeks?")
+            if "hear" in q_lower or "ear" in q_lower:
+                questions.append("Did the hearing change occur suddenly within minutes or hours (which can require urgent evaluation), or has it developed gradually over weeks or months?")
+            elif "depress" in q_lower or "enjoyment" in q_lower or "mood" in q_lower or "sad" in q_lower:
+                questions.append("How long have you been experiencing this low mood or lack of enjoyment (e.g., more or less than two consecutive weeks)?")
+            else:
+                questions.append("When did this symptom first begin, and did it start suddenly (within minutes/hours) or develop gradually over days or weeks?")
 
         # Character / quality probing
         if any("quality" in d.lower() for d in missing_dimensions):
-            if "leg" in q_lower or "back" in q_lower or "nerve" in q_lower:
+            if "hear" in q_lower or "ear" in q_lower:
+                questions.append("Are you experiencing ringing or buzzing (tinnitus), ear popping, echoing, or difficulty understanding speech in background noise?")
+            elif "depress" in q_lower or "enjoyment" in q_lower or "mood" in q_lower:
+                questions.append("Have you noticed severe fatigue, changes in sleep patterns (insomnia or sleeping too much), appetite loss, or feelings of worthlessness?")
+            elif "leg" in q_lower or "back" in q_lower or "nerve" in q_lower:
                 questions.append("How would you describe the sensation (e.g., sharp, shooting, burning, dull ache, or pins-and-needles), and on a scale of 1 to 10, how severe is it?")
             else:
                 questions.append("How does the sensation feel (e.g., sharp, throbbing, dull ache, burning, or tightness), and what is your pain score from 1 to 10?")
 
         # Modifiers / triggers probing
         if any("aggravating" in d.lower() or "relieving" in d.lower() for d in missing_dimensions):
-            if "leg" in q_lower or "back" in q_lower:
+            if "hear" in q_lower or "ear" in q_lower:
+                questions.append("Does exposure to loud sounds, pressure changes (like flying), water in the ear, or head movements make the hearing issue noticeably worse?")
+            elif "leg" in q_lower or "back" in q_lower:
                 questions.append("Does walking, sitting, bending, or resting make the symptoms significantly better or worse?")
             else:
                 questions.append("Does any specific activity, posture, food, or medication make the symptoms better or worse?")
 
         # Red flags probing
         if any("red flag" in d.lower() or "associated" in d.lower() for d in missing_dimensions):
-            if "leg" in q_lower or "back" in q_lower:
+            if "hear" in q_lower or "ear" in q_lower:
+                questions.append("Are you experiencing room-spinning dizziness (vertigo), ear pain, fluid drainage, sudden facial weakness, or recent head trauma?")
+            elif "depress" in q_lower or "enjoyment" in q_lower or "mood" in q_lower or "anxiet" in q_lower:
+                questions.append("Are you experiencing any thoughts of harming yourself, feeling that life is not worth living, or overwhelming hopelessness?")
+            elif "leg" in q_lower or "back" in q_lower:
                 questions.append("Are you having any critical red flags, such as numbness around the groin/saddle area, sudden weakness/foot drop, fever, or changes in bowel or bladder control?")
             elif "chest" in q_lower:
                 questions.append("Are you experiencing shortness of breath, cold sweating, lightheadedness, or nausea?")

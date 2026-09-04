@@ -257,7 +257,7 @@ class GenericOpenAIClient:
             or os.getenv("FALLBACK_LLM_MODEL", "google/gemma-4-26b-a4b-it:free")
         )
 
-        self.base_timeout = 8.0
+        self.base_timeout = float(os.getenv("API_TIMEOUT_SECONDS", "15.0"))
         self.max_retries = max_retries
         self.models = models or FREE_MODELS
 

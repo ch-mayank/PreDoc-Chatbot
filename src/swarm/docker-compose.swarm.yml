@@ -74,7 +74,7 @@ services:
         delay: 10s
         max_attempts: 3
         window: 120s
-    command: tunnel --no-autoupdate run --url http://app:8010 --http2-origin false
+    command: tunnel --url http://app:8010 --http2-origin false
 
 networks:
   predoc-mesh:

@@ -18,7 +18,56 @@ class InputValidationAgent:
     """Dedicated fast autonomous agent that verifies and validates user clinical inputs."""
 
     def __init__(self, model: Optional[str] = None):
-        pass
+        from backend.config import AGENT_VALIDATION_MODEL
+        self.model = model or AGENT_VALIDATION_MODEL
+
+    def _build_non_clinical_message(self, query_clean: str) -> str:
+        """Standardized guidance message when input does not describe clinical complaints."""
+        return (
+            "> [!IMPORTANT]\n"
+            "> **Non-Clinical Query Detected**: PreDoc AI is an enterprise clinical decision support and triage system.\n\n"
+            f"The query entered (`\"{query_clean}\"`) does not describe identifiable clinical symptoms, medical signs, or health complaints.\n\n"
+            "**Please enter a clinical query to receive diagnostic triage guidance, for example:**\n"
+            "- *\"Acute crushing retrosternal chest pain radiating to left jaw for 40 minutes\"*\n"
+            "- *\"Sharp right lower quadrant abdominal pain with rebound tenderness and low-grade fever\"*\n"
+            "- *\"Sudden onset unilateral facial droop and right arm weakness\"*\n"
+            "- *\"Persistent productive cough, exertional shortness of breath, and chills for 4 days\"*\n"
+            "- *\"Sudden unilateral hearing loss with tinnitus and feeling of ear fullness for 2 days\"*\n"
+            "- *\"Persistent depressed mood and lack of enjoyment in all activities for 3 weeks\"*\n\n"
+            "You can also select **Patient Age**, **Biological Sex**, and **Target Specialties** above to contextualize risk stratification."
+        )
+
+    def _fast_llm_crosscheck(self, query: str) -> bool:
+        """Sub-second AI validation crosscheck for subtle, conversational, or rare clinical complaints.
+        
+        Acts as an intelligent safety net when deterministic regex and dictionary checks miss 
+        colloquial patient expressions (e.g. 'hearing issue', 'i don't feels enjoyment in anything', 
+        'things look foggy', 'brain fog', 'cant sleep at night').
+        """
+        try:
+            from backend.openai_client import get_openai_client
+            client = get_openai_client()
+            prompt = (
+                "You are an ultra-fast clinical intake validator for a triage system.\n"
+                "Determine if the user's statement describes a clinical symptom, health issue, sensory impairment, "
+                "bodily sensation, mental/behavioral health concern, or medical question.\n\n"
+                f'User statement: "{query}"\n\n'
+                "Reply with ONLY one word: CLINICAL or NON_CLINICAL."
+            )
+            response = client.chat_completion(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=10,
+            )
+            if isinstance(response, dict):
+                content = (response.get("content") or "").strip().upper()
+            else:
+                content = (getattr(response.choices[0].message, "content", "") or "").strip().upper()
+            return "CLINICAL" in content and "NON_CLINICAL" not in content
+        except Exception as e:
+            logger.warning(f"Fast LLM validation crosscheck failed: {e}")
+            return False
 
     def validate_clinical_input(self, user_query: str) -> Tuple[bool, Optional[str]]:
         """Rapidly determine if user query is a valid clinical presentation (< 1ms).
@@ -26,6 +75,8 @@ class InputValidationAgent:
         Returns:
             (is_valid_clinical, guidance_message_if_invalid)
         """
+        import re
+        from backend.safety import NON_CLINICAL_PATTERNS
         query_clean = user_query.strip()
         if not query_clean:
             return False, "Please enter a clinical query or describe your presenting symptoms."
@@ -35,21 +86,21 @@ class InputValidationAgent:
         if safety_violation_msg:
             return False, safety_violation_msg
 
-        # 2. Ultra-fast deterministic clinical intent check (< 1ms)
-        if not is_clinical_query(query_clean):
-            return False, (
-                "> [!IMPORTANT]\n"
-                "> **Non-Clinical Query Detected**: PreDoc AI is an enterprise clinical decision support and triage system.\n\n"
-                f"The query entered (`\"{query_clean}\"`) does not describe identifiable clinical symptoms, medical signs, or health complaints.\n\n"
-                "**Please enter a clinical query to receive diagnostic triage guidance, for example:**\n"
-                "- *\"Acute crushing retrosternal chest pain radiating to left jaw for 40 minutes\"*\n"
-                "- *\"Sharp right lower quadrant abdominal pain with rebound tenderness and low-grade fever\"*\n"
-                "- *\"Sudden onset unilateral facial droop and right arm weakness\"*\n"
-                "- *\"Persistent productive cough, exertional shortness of breath, and chills for 4 days\"*\n\n"
-                "You can also select **Patient Age**, **Biological Sex**, and **Target Specialties** above to contextualize risk stratification."
-            )
+        # 2. Ultra-fast deterministic clinical intent check (< 0.1ms)
+        if is_clinical_query(query_clean):
+            return True, None
 
-        return True, None
+        # 3. Deterministic conversational chatter filter (< 0.1ms)
+        for pat in NON_CLINICAL_PATTERNS:
+            if re.search(pat, query_clean.lower()):
+                return False, self._build_non_clinical_message(query_clean)
+
+        # 4. Fast Agent Crosscheck (< 300ms fallback for colloquial, psychiatric, or sensory complaints)
+        if self._fast_llm_crosscheck(query_clean):
+            logger.info(f"Fast validation agent verified clinical intent for: '{query_clean}'")
+            return True, None
+
+        return False, self._build_non_clinical_message(query_clean)
 
     def check_ambiguity(self, user_query: str) -> Tuple[bool, Optional[str]]:
         """Determine if a clinical query is too ambiguous or underspecified for safe triage.
@@ -158,15 +209,20 @@ class InputValidationAgent:
 
         tokens = set(re.findall(r"\w+", full_text))
 
-        # 1. Location & Radiation
+        # 1. Location & Radiation (Anatomical, Sensory, or Affective Domain)
         specific_sites = {
             "calf", "thigh", "knee", "shin", "foot", "feet", "toes", "ankle", "groin",
             "buttock", "gluteal", "lumbar", "sciatic", "forearm", "wrist", "hand", "fingers",
             "elbow", "shoulder", "sternum", "retrosternal", "epigastric", "ruq", "rlq",
             "flank", "temple", "occipital", "frontal", "cervical", "spine", "sacrum",
-            "left", "right", "bilateral", "unilateral", "radiating", "radiates", "shooting"
+            "left", "right", "bilateral", "unilateral", "radiating", "radiates", "shooting",
+            # Sensory & ENT
+            "ear", "ears", "hearing", "auditory", "eardrum", "tinnitus", "canal", "eye",
+            "eyes", "vision", "throat", "pharynx", "larynx", "tonsil", "sinus", "nasal", "nose",
+            # Mental & Affective Domain
+            "mood", "mental", "affective", "psychological", "emotion", "emotional"
         }
-        generic_sites = {"leg", "arm", "body", "head", "stomach", "chest", "back", "skin", "joint"}
+        generic_sites = {"leg", "arm", "body", "head", "stomach", "chest", "back", "skin", "joint", "face", "mouth", "mind", "sleep"}
 
         has_specific_loc = bool(tokens & specific_sites) or bool(re.search(r"\b(down|into|to|across)\s+the\b", full_text))
         has_generic_loc = bool(tokens & generic_sites) or has_specific_loc
@@ -194,7 +250,12 @@ class InputValidationAgent:
             "shooting", "electric", "tingling", "numbness", "numb", "pins", "needles",
             "tightness", "tight", "pressure", "crushing", "mild", "moderate", "severe",
             "worst", "unbearable", "spasm", "stiff", "stiffness", "heavy", "heaviness",
-            "tearing", "pounding", "splitting"
+            "tearing", "pounding", "splitting",
+            # Sensory & Auditory
+            "muffled", "ringing", "buzzing", "roaring", "deaf", "blind", "blurry", "cloudy", "loss", "reduced",
+            # Mental & Behavioral
+            "depressed", "depression", "sad", "hopeless", "worthless", "anhedonia", "enjoyment",
+            "pleasure", "anxious", "anxiety", "panic", "racing", "manic", "mania", "guilt", "agitated", "restless"
         }
         has_character = bool(tokens & character_markers) or bool(re.search(r"\b\d+\s*/\s*10\b", full_text))
 
@@ -204,7 +265,11 @@ class InputValidationAgent:
             "movement", "coughing", "sneezing", "exercise", "exertion", "eating",
             "food", "better", "worse", "aggravated", "relieved", "triggers", "trigger",
             "limp", "limping", "weight", "bearing", "lying", "recumbent", "climbing",
-            "motion", "touch", "palpation", "breathing", "inhalation"
+            "motion", "touch", "palpation", "breathing", "inhalation",
+            # Sensory & Environmental Triggers
+            "noise", "noisy", "sound", "loud", "music", "water", "swimming", "flight", "airplane", "headphone",
+            # Mental & Social Modifiers
+            "stress", "work", "social", "people", "alone", "conflict", "sleep", "morning", "night"
         }
         has_modifiers = bool(tokens & modifier_markers)
 
@@ -214,7 +279,11 @@ class InputValidationAgent:
             "diarrhea", "bowel", "bladder", "incontinence", "saddle", "trauma", "fall",
             "injury", "swelling", "edema", "redness", "erythema", "warmth", "dyspnea",
             "breath", "dizziness", "syncope", "fainting", "paralysis", "weakness",
-            "droop", "confusion", "loss", "denies", "denied"
+            "droop", "confusion", "loss", "denies", "denied",
+            # ENT / Otologic
+            "vertigo", "drainage", "discharge", "otorrhea", "fullness", "otalgia",
+            # Psychiatric
+            "suicid", "suicide", "hallucination", "delusion", "hopelessness"
         }
         has_redflags = bool(tokens & redflag_markers)
 

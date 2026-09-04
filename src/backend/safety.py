@@ -32,11 +32,15 @@ SELF_HARM_PATTERN = re.compile(
 EXACT_CLINICAL_WORDS = {
     "ill", "sick", "hurt", "pain", "ache", "sore", "rash", "weak", "burn", "itch",
     "numb", "cold", "flu", "wound", "cramp", "stiff", "lump", "mass", "faint", "ear",
-    "eye", "mouth", "tongue", "tooth", "teeth", "neck", "back", "spine", "arm", "leg",
-    "foot", "feet", "hand", "finger", "toe", "skin", "heart", "lung", "liver", "kidney",
-    "bladder", "bowel", "colon", "blood", "pulse", "bp", "sugar", "glucose", "gout",
-    "clot", "cyst", "bile", "vein", "gut", "rib", "jaw", "knee", "hip", "bone", "lip",
-    "gum", "sinus"
+    "ears", "hear", "eye", "eyes", "mouth", "tongue", "tooth", "teeth", "neck", "back",
+    "spine", "arm", "leg", "foot", "feet", "hand", "finger", "toe", "skin", "heart",
+    "lung", "liver", "kidney", "bladder", "bowel", "colon", "blood", "pulse", "bp",
+    "sugar", "glucose", "gout", "clot", "cyst", "bile", "vein", "gut", "rib", "jaw",
+    "knee", "hip", "bone", "lip", "gum", "sinus", "nose", "smell", "taste", "deaf",
+    "blind", "mute", "sad", "mood", "crying", "cry", "guilt", "ptsd", "ocd", "mania",
+    "grief", "stress", "sleep", "mind", "fear", "pale", "bump", "hives", "mole",
+    "boil", "scab", "drain", "pus", "pee", "poop", "stool", "vomit", "phlegm",
+    "shiver", "shake", "tremor", "wheeze", "cough"
 }
 
 # Medical prefixes/stems (>= 4 chars) where prefix matching (w.startswith(p)) is safe
@@ -49,7 +53,20 @@ CLINICAL_PREFIXES = {
     "urolo", "neuro", "dermat", "gastro", "endocr", "hemat", "pediatr", "geriatr",
     "syndrom", "diseas", "disorder", "diagnos", "symptom", "triage", "hyper", "hypo",
     "anemi", "arrhythm", "tachy", "brady", "hyperten", "hypoten", "inflamm", "allerg",
-    "fractur", "sprain", "hemorrh", "bleed", "dizz"
+    "fractur", "sprain", "hemorrh", "bleed", "dizz",
+    # Sensory & ENT (Auditory, Hearing, Ophthalmic)
+    "hearing", "auditor", "tinnitus", "earach", "vertigo", "otit", "cerumen", "tympan",
+    "nasal", "rhinit", "sinusit", "pharyng", "laryng", "tonsil", "hoarse", "epistax",
+    "visual", "strabism", "cataract", "glaucom", "retin", "conjunctiv", "cornea",
+    # Mental, Behavioral, Affective & Cognitive
+    "depress", "anhedon", "enjoyment", "pleasur", "anxiet", "anxious", "panic",
+    "insomnia", "sleepless", "nightmare", "bipolar", "psychiatr", "psycholog",
+    "hallucinat", "delusion", "schizo", "suicid", "manic", "euphor", "phobi",
+    "obsess", "compuls", "hopeless", "worthless", "appetit", "paranoi", "dementi",
+    "deliri", "amnesi", "neurotic", "agitat", "restless", "dysthymi", "cognitive",
+    "concentrat",
+    # Systemic, Somatic & Neuromuscular
+    "swollen", "swelling", "exhaust", "letharg", "urina", "urinat", "gastric", "paralys"
 }
 
 # Backward compatibility alias for tests
