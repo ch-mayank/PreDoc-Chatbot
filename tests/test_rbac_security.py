@@ -80,6 +80,69 @@ class TestRBACSecurity(unittest.TestCase):
         res = self.client.get("/api/metrics")
         self.assertEqual(res.status_code, 401)
 
+    def test_admin_verify_endpoint_with_active_admin_key(self):
+        """Admin verify endpoint should return 200 authorized for valid admin key."""
+        res = self.client.post("/api/admin/verify", headers={"x-api-key": config.ADMIN_API_KEY})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("status"), "authorized")
+        self.assertEqual(data.get("role"), "admin")
+
+    def test_admin_verify_endpoint_rejects_clinical_user_key(self):
+        """Admin verify endpoint must reject standard clinician key with 403 Forbidden."""
+        res = self.client.post("/api/admin/verify", headers={"x-api-key": config.USER_API_KEY})
+        self.assertEqual(res.status_code, 403)
+        self.assertIn("Admin Dashboard API Key", res.json().get("detail", ""))
+
+    def test_admin_verify_endpoint_rejects_unauthenticated(self):
+        """Admin verify endpoint without key should return 401."""
+        res = self.client.post("/api/admin/verify")
+        self.assertEqual(res.status_code, 401)
+
+    def test_dual_key_rotation_admin_grace_period(self):
+        """Admin endpoints should accept PREVIOUS_ADMIN_API_KEY during rotation transition."""
+        from unittest.mock import patch
+        with patch("backend.security.PREVIOUS_ADMIN_API_KEY", "predoc_admin_previous_grace_key_456"):
+            # Test verify with previous rotated admin key
+            res_verify = self.client.post(
+                "/api/admin/verify",
+                headers={"x-api-key": "predoc_admin_previous_grace_key_456"}
+            )
+            self.assertEqual(res_verify.status_code, 200)
+
+            # Test metrics with previous rotated admin key
+            res_metrics = self.client.get(
+                "/api/metrics",
+                headers={"x-api-key": "predoc_admin_previous_grace_key_456"}
+            )
+            self.assertEqual(res_metrics.status_code, 200)
+
+    def test_system_retrieval_requires_admin_key(self):
+        """Switching retrieval mode must require valid Admin key, rejecting unauthenticated & clinician keys."""
+        # 1. Unauthenticated request rejected
+        res_unauth = self.client.post("/api/system/retrieval", json={"mode": "hybrid"})
+        self.assertEqual(res_unauth.status_code, 401)
+
+        # 2. Clinician key rejected with 403 Forbidden
+        res_user = self.client.post(
+            "/api/system/retrieval",
+            headers={"x-api-key": config.USER_API_KEY},
+            json={"mode": "hybrid"}
+        )
+        self.assertEqual(res_user.status_code, 403)
+
+        # 3. Valid Admin key accepted
+        res_admin = self.client.post(
+            "/api/system/retrieval",
+            headers={"x-api-key": config.ADMIN_API_KEY},
+            json={"mode": "hybrid"}
+        )
+        self.assertEqual(res_admin.status_code, 200)
+        data = res_admin.json()
+        self.assertEqual(data.get("mode"), "hybrid")
+        self.assertEqual(data.get("updated_by"), "admin")
+
 
 if __name__ == "__main__":
     unittest.main()
+

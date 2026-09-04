@@ -17,6 +17,7 @@ from backend.config import (
     ADMIN_PASS,
     ADMIN_USER,
     ADMIN_API_KEY,
+    PREVIOUS_ADMIN_API_KEY,
     USER_USER,
     USER_PASS,
     USER_API_KEY,
@@ -116,9 +117,11 @@ def verify_api_key(
             detail="Missing API Key. Provide key via x-api-key header, Bearer auth, or api_key param.",
         )
 
-    # 1. Admin API key
+    # 1. Admin API key (active or grace-period rotated)
     if ADMIN_API_KEY and (token == ADMIN_API_KEY or secrets.compare_digest(token, ADMIN_API_KEY)):
         return ADMIN_API_KEY
+    if PREVIOUS_ADMIN_API_KEY and (token == PREVIOUS_ADMIN_API_KEY or secrets.compare_digest(token, PREVIOUS_ADMIN_API_KEY)):
+        return PREVIOUS_ADMIN_API_KEY
 
     # 2. User / Clinical API key (supports active key and grace-period previous key)
     if (
@@ -164,9 +167,12 @@ def verify_admin_api_key(
             detail="Missing Admin API Key. Provide via x-api-key header, Bearer auth, or ?api_key= query param.",
         )
 
-    # Validate against configured ADMIN_API_KEY
+    # Validate against configured active ADMIN_API_KEY or rotated PREVIOUS_ADMIN_API_KEY (grace period)
     if ADMIN_API_KEY and (token == ADMIN_API_KEY or secrets.compare_digest(token, ADMIN_API_KEY)):
         return ADMIN_API_KEY
+
+    if PREVIOUS_ADMIN_API_KEY and (token == PREVIOUS_ADMIN_API_KEY or secrets.compare_digest(token, PREVIOUS_ADMIN_API_KEY)):
+        return PREVIOUS_ADMIN_API_KEY
 
     # Also accept server backend master keys
     server_keys = [

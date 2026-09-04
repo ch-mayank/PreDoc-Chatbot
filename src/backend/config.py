@@ -83,14 +83,20 @@ USER_API_KEY = (
 ).strip()
 DEMO_API_KEY = USER_API_KEY  # Backward-compatible alias
 
-# 3. Grace-period rotated key support (Best practice: allow previous key during transition window)
+# 3. Grace-period rotated key support (Best practice: dual key rotation with transition window)
+PREVIOUS_ADMIN_API_KEY = (
+    get_secret("previous_admin_api_key", "PREVIOUS_ADMIN_API_KEY", default="")
+).strip()
 PREVIOUS_USER_API_KEY = (
     get_secret("previous_clinical_api_key", "PREVIOUS_CLINICAL_API_KEY", default="")
 ).strip()
 
-# Audit log active key on startup to standard logger (only shown in logs, never in source)
+# Audit log active keys on startup to standard logger (only shown in logs, never in source)
 logger.info("==================================================")
 logger.info("[SECURITY AUDIT] PreDoc Beta Security Initialized")
+logger.info("[SECURITY AUDIT] Active Admin API Key: %s", ADMIN_API_KEY)
+if PREVIOUS_ADMIN_API_KEY:
+    logger.info("[SECURITY AUDIT] Previous Admin API Key (Grace Period): %s", PREVIOUS_ADMIN_API_KEY)
 logger.info("[SECURITY AUDIT] Active Clinical API Key: %s", USER_API_KEY)
 if PREVIOUS_USER_API_KEY:
     logger.info("[SECURITY AUDIT] Previous Clinical API Key (Grace Period): %s", PREVIOUS_USER_API_KEY)

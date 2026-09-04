@@ -268,9 +268,18 @@ async def system_status():
     return res
 
 
+@app.post("/api/admin/verify", tags=["Security"])
+async def verify_admin_session(admin_key: str = Depends(verify_admin_api_key)):
+    """Verify administrator API key validity for frontend Operations Dashboard access."""
+    return {"status": "authorized", "role": "admin"}
+
+
 @app.post("/api/system/retrieval", tags=["Telemetry"])
-async def set_retrieval_mode(payload: Dict[str, str]):
-    """Switch the active retrieval strategy for subsequent clinical searches."""
+async def set_retrieval_mode(
+    payload: Dict[str, str],
+    admin_key: str = Depends(verify_admin_api_key),
+):
+    """Switch the active retrieval strategy for subsequent clinical searches. Strictly restricted to administrators."""
     global _status_cache, _status_cache_time
     mode = payload.get("mode", "").lower()
     if mode not in {"hybrid", "dense", "keyword"}:
@@ -283,7 +292,7 @@ async def set_retrieval_mode(payload: Dict[str, str]):
         )
     _status_cache = None
     _status_cache_time = 0.0
-    return {"mode": mode}
+    return {"mode": mode, "updated_by": "admin"}
 
 
 def get_frontend_index_path() -> Path:

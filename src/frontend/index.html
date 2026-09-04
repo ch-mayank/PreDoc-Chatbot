@@ -523,6 +523,161 @@
             animation: fadeIn 0.25s ease-out;
         }
 
+        /* Admin Gate Lock Screen */
+        .admin-lock-card {
+            max-width: 540px;
+            margin: 40px auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 36px 30px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .admin-lock-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(14, 116, 144, 0.12);
+            color: var(--primary-blue);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .admin-lock-card h3 {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .admin-lock-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .admin-lock-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .admin-lock-input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .admin-lock-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .admin-lock-input-wrapper input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: monospace;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .admin-lock-input-wrapper input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(14, 116, 144, 0.15);
+        }
+
+        .admin-lock-error {
+            display: none;
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: #ef4444;
+            font-size: 0.82rem;
+            text-align: left;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .btn-unlock {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-blue), #0b9fb0);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px var(--primary-glow);
+            transition: all 0.2s;
+        }
+
+        .btn-unlock:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--primary-hover), var(--primary-blue));
+            transform: translateY(-1px);
+        }
+
+        .btn-unlock:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-active-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 100px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #059669;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+
+        .btn-lock {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.05);
+            color: #ef4444;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-lock:hover {
+            background: rgba(239, 68, 68, 0.12);
+        }
+
         .dashboard-header {
             display: flex;
             align-items: center;
@@ -972,16 +1127,53 @@
          VIEW 2: OPERATIONS & MULTI-AGENT TELEMETRY DASHBOARD
          ===================================================================== -->
     <section id="dashboardView">
-        <div class="dashboard-header">
-            <div>
-                <h2>Knowledge Base & Vector Engine Telemetry</h2>
-                <p>Real-time telemetry on multi-agent execution, cloud embeddings, rate limits, and hybrid retrieval</p>
+        <!-- 1. Admin Authentication Lock Gate -->
+        <div id="adminLockGate" class="admin-lock-card">
+            <div class="admin-lock-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
             </div>
-            <button type="button" id="btnRefreshTelemetry" class="btn-refresh">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                Refresh Telemetry
-            </button>
+            <h3>Operations &amp; Telemetry Access Restricted</h3>
+            <p>Administrative authentication required. Enter your Administrator API Key to access multi-agent telemetry, rate limit meters, and retrieval architecture controls.</p>
+            <div class="admin-lock-input-group">
+                <label for="adminKeyInput">Administrator API Key</label>
+                <div class="admin-lock-input-wrapper">
+                    <input type="password" id="adminKeyInput" placeholder="Enter Admin API Key (e.g. predoc_admin_...)" autocomplete="off" />
+                </div>
+                <div id="adminLockError" class="admin-lock-error"></div>
+                <button type="button" id="btnUnlockDashboard" class="btn-unlock" style="margin-top: 8px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Unlock Operations Dashboard
+                </button>
+            </div>
         </div>
+
+        <!-- 2. Authenticated Dashboard Content -->
+        <div id="dashboardContent" style="display: none;">
+            <div class="dashboard-header">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h2>Knowledge Base & Vector Engine Telemetry</h2>
+                        <span class="admin-active-badge">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Admin Verified
+                        </span>
+                    </div>
+                    <p>Real-time telemetry on multi-agent execution, cloud embeddings, rate limits, and hybrid retrieval</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" id="btnRefreshTelemetry" class="btn-refresh">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        Refresh Telemetry
+                    </button>
+                    <button type="button" id="btnLockDashboard" class="btn-lock" title="Lock Dashboard and end administrator session">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        Lock Dashboard
+                    </button>
+                </div>
+            </div>
 
         <!-- 4 Top Core Telemetry Metric Cards -->
         <div class="dash-metrics-grid">
@@ -1138,6 +1330,7 @@
                 </div>
             </div>
         </div>
+        </div> <!-- /dashboardContent -->
     </section>
 
 </div>
@@ -1161,7 +1354,13 @@
     const systemBeacon = document.getElementById('systemBeacon');
     const beaconText = document.getElementById('beaconText');
 
-    // Dashboard Telemetry Elements
+    // Dashboard Telemetry & Admin Security Gate Elements
+    const adminLockGate = document.getElementById('adminLockGate');
+    const dashboardContent = document.getElementById('dashboardContent');
+    const adminKeyInput = document.getElementById('adminKeyInput');
+    const btnUnlockDashboard = document.getElementById('btnUnlockDashboard');
+    const adminLockError = document.getElementById('adminLockError');
+    const btnLockDashboard = document.getElementById('btnLockDashboard');
     const btnRefreshTelemetry = document.getElementById('btnRefreshTelemetry');
     const dashKbCount = document.getElementById('dashKbCount');
     const dashKbPct = document.getElementById('dashKbPct');
@@ -1186,8 +1385,85 @@
 
     let selectedSpecialties = [];
 
+    // Operations Dashboard Admin Gate Helpers
+    async function verifyAndUnlockDashboard(adminKey) {
+        if (!adminKey) return false;
+        try {
+            const res = await fetch('/api/admin/verify', {
+                method: 'POST',
+                headers: { 'x-api-key': adminKey }
+            });
+            if (res.ok) {
+                sessionStorage.setItem('predoc_admin_key', adminKey);
+                if (adminLockError) adminLockError.style.display = 'none';
+                if (adminLockGate) adminLockGate.style.display = 'none';
+                if (dashboardContent) dashboardContent.style.display = 'block';
+                fetchDashboardTelemetry();
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('Admin key verification error', e);
+            return false;
+        }
+    }
+
+    function lockDashboard(errorMessage = '') {
+        sessionStorage.removeItem('predoc_admin_key');
+        if (dashboardContent) dashboardContent.style.display = 'none';
+        if (adminLockGate) adminLockGate.style.display = 'block';
+        if (adminKeyInput) adminKeyInput.value = '';
+        if (adminLockError) {
+            if (errorMessage) {
+                adminLockError.innerText = errorMessage;
+                adminLockError.style.display = 'block';
+            } else {
+                adminLockError.style.display = 'none';
+            }
+        }
+    }
+
+    if (btnLockDashboard) {
+        btnLockDashboard.addEventListener('click', () => lockDashboard());
+    }
+
+    if (btnUnlockDashboard) {
+        btnUnlockDashboard.addEventListener('click', async () => {
+            const key = adminKeyInput ? adminKeyInput.value.trim() : '';
+            if (!key) {
+                if (adminLockError) {
+                    adminLockError.innerText = 'Please enter an Administrator API Key.';
+                    adminLockError.style.display = 'block';
+                }
+                if (adminKeyInput) adminKeyInput.focus();
+                return;
+            }
+            btnUnlockDashboard.disabled = true;
+            btnUnlockDashboard.innerText = 'Verifying Admin Key...';
+            const ok = await verifyAndUnlockDashboard(key);
+            btnUnlockDashboard.disabled = false;
+            btnUnlockDashboard.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Unlock Operations Dashboard';
+            if (!ok) {
+                if (adminLockError) {
+                    adminLockError.innerText = 'Access Denied: Invalid or rotated Administrator API Key.';
+                    adminLockError.style.display = 'block';
+                }
+                if (adminKeyInput) adminKeyInput.focus();
+            }
+        });
+    }
+
+    if (adminKeyInput) {
+        adminKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnUnlockDashboard.click();
+            }
+        });
+    }
+
     // Navigation View Switcher (Consultation vs Operations Dashboard)
-    function switchView(viewName) {
+    async function switchView(viewName) {
         if (viewName === 'dashboard') {
             tabDashboard.classList.add('active');
             tabDashboard.setAttribute('aria-selected', 'true');
@@ -1196,7 +1472,17 @@
             consultationView.style.display = 'none';
             dashboardView.style.display = 'block';
             window.location.hash = 'dashboard';
-            fetchDashboardTelemetry();
+
+            const savedAdminKey = sessionStorage.getItem('predoc_admin_key');
+            if (savedAdminKey) {
+                const verified = await verifyAndUnlockDashboard(savedAdminKey);
+                if (!verified) {
+                    lockDashboard('Administrator session expired or key rotated. Please re-enter Admin API key.');
+                }
+            } else {
+                lockDashboard();
+                setTimeout(() => { if (adminKeyInput) adminKeyInput.focus(); }, 50);
+            }
         } else {
             tabConsultation.classList.add('active');
             tabConsultation.setAttribute('aria-selected', 'true');
@@ -1270,10 +1556,16 @@
         }
     });
 
-    // Fetch & Render Dashboard Telemetry
+    // Fetch & Render Dashboard Telemetry (Admin Authenticated)
     async function fetchDashboardTelemetry() {
+        const adminKey = sessionStorage.getItem('predoc_admin_key');
+        if (!adminKey || dashboardView.style.display === 'none') {
+            return;
+        }
         try {
-            const res = await fetch('/api/system/status');
+            const res = await fetch('/api/system/status', {
+                headers: { 'x-api-key': adminKey }
+            });
             if (!res.ok) return;
             const data = await res.json();
             const kb = data.knowledge_base || {};
@@ -1360,13 +1652,21 @@
 
     dashRetrievalMode.addEventListener('change', async () => {
         const selectedMode = dashRetrievalMode.value;
+        const adminKey = sessionStorage.getItem('predoc_admin_key') || '';
         dashRetrievalMode.disabled = true;
         try {
             const res = await fetch('/api/system/retrieval', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-api-key': adminKey
+                },
                 body: JSON.stringify({ mode: selectedMode })
             });
+            if (res.status === 401 || res.status === 403) {
+                lockDashboard('Admin authorization required to change retrieval architecture.');
+                throw new Error('Admin API Key required to configure retrieval architecture');
+            }
             if (!res.ok) throw new Error('Failed to update retrieval strategy');
             fetchDashboardTelemetry();
         } catch (e) {
@@ -1376,9 +1676,12 @@
         }
     });
 
-    // Auto-poll telemetry every 20 seconds
-    fetchDashboardTelemetry();
-    setInterval(fetchDashboardTelemetry, 20000);
+    // Auto-poll telemetry every 20 seconds only when dashboard is active and authenticated
+    setInterval(() => {
+        if (dashboardView.style.display !== 'none' && sessionStorage.getItem('predoc_admin_key')) {
+            fetchDashboardTelemetry();
+        }
+    }, 20000);
 
     // Multi-Turn Interactive Clinical Intake State
     let consultationHistory = [];
