@@ -8,7 +8,7 @@ to clinical triage decision support.
 import logging
 from typing import Optional, Tuple
 
-from backend.safety import is_clinical_query
+from backend.safety import is_clinical_query, check_safety_violation
 
 logger = logging.getLogger("predoc.agents.input_validation")
 logger.setLevel(logging.INFO)
@@ -30,7 +30,12 @@ class InputValidationAgent:
         if not query_clean:
             return False, "Please enter a clinical query or describe your presenting symptoms."
 
-        # Ultra-fast deterministic heuristic check (< 1ms)
+        # 1. Deterministic safety, threat, and harm check (< 0.1ms)
+        safety_violation_msg = check_safety_violation(query_clean)
+        if safety_violation_msg:
+            return False, safety_violation_msg
+
+        # 2. Ultra-fast deterministic clinical intent check (< 1ms)
         if not is_clinical_query(query_clean):
             return False, (
                 "> [!IMPORTANT]\n"

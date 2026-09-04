@@ -20,7 +20,44 @@ from llama_index.core import (
 )
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore, TextNode
-from rank_bm25 import BM25Okapi
+
+try:
+    from rank_bm25 import BM25Okapi
+except (ImportError, ModuleNotFoundError):
+    import math
+    from collections import Counter
+
+    class BM25Okapi:  # type: ignore[no-redef]
+        """Pure-Python BM25Okapi implementation for zero-dependency hybrid retrieval."""
+
+        def __init__(self, corpus: List[List[str]], k1: float = 1.5, b: float = 0.75):
+            self.corpus_size = len(corpus)
+            self.avgdl = sum(len(doc) for doc in corpus) / max(1, self.corpus_size)
+            self.k1 = k1
+            self.b = b
+            self.doc_len = [len(doc) for doc in corpus]
+            self.doc_freqs: List[Counter] = [Counter(doc) for doc in corpus]
+            self.nd = Counter()
+            for doc in corpus:
+                for word in set(doc):
+                    self.nd[word] += 1
+            self.idf: Dict[str, float] = {}
+            for word, freq in self.nd.items():
+                self.idf[word] = math.log((self.corpus_size - freq + 0.5) / (freq + 0.5) + 1.0)
+
+        def get_scores(self, query: List[str]) -> List[float]:
+            scores = [0.0] * self.corpus_size
+            for q in query:
+                if q not in self.idf:
+                    continue
+                q_idf = self.idf[q]
+                for i, doc_freq in enumerate(self.doc_freqs):
+                    freq = doc_freq.get(q, 0)
+                    if freq > 0:
+                        num = freq * (self.k1 + 1)
+                        den = freq + self.k1 * (1 - self.b + self.b * (self.doc_len[i] / max(1.0, self.avgdl)))
+                        scores[i] += q_idf * (num / max(1e-6, den))
+            return scores
 
 from backend.config import DATA_DIR, PERSIST_DIR, get_file_metadata
 

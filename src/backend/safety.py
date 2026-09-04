@@ -10,19 +10,46 @@ URGENT_SYMPTOMS = re.compile(
     re.IGNORECASE,
 )
 
-CLINICAL_STEMS = {
-    "pain", "ache", "sore", "fever", "cough", "rash", "weak", "dizz", "swell", "bleeding", "bleed",
-    "vomit", "nausea", "fatigue", "tired", "breath", "dyspnea", "chest", "head", "abdom", "stomach",
-    "throat", "burn", "itch", "wound", "injury", "cramp", "stiff", "seizure", "palpitat", "numb",
-    "tingl", "chill", "diarrhea", "constipat", "lesion", "lump", "mass", "discharge", "vision",
-    "blur", "cold", "flu", "infect", "pressure", "spasm", "trauma", "bruise", "joint", "muscle",
-    "swollen", "edema", "syncope", "faint", "erythem", "wheez", "hemopt", "jaundice", "yellow",
-    "cardia", "pulmon", "renal", "uro", "neuro", "derm", "gastro", "endo", "hema", "pediatr",
-    "geriatr", "syndrome", "disease", "disorder", "diagnos", "symptom", "sign", "triage", "ill",
-    "sick", "hurt", "ear", "eye", "mouth", "tongue", "tooth", "teeth", "neck", "back", "spine",
-    "arm", "leg", "foot", "feet", "hand", "finger", "toe", "skin", "heart", "lung", "liver",
-    "kidney", "bladder", "bowel", "colon", "blood", "pulse", "bp", "temperature", "sugar", "glucose"
+THREAT_OR_VIOLENCE_PATTERN = re.compile(
+    r"\b(i\s+will\s+kill\s+u|i\s+will\s+kill\s+you|kill\s+u|kill\s+you|kill\s+yourself|"
+    r"murder\s+you|murder\s+u|threat(en)?|bomb|shoot\s+you|shoot\s+u|"
+    r"attack\s+you|attack\s+u|hurt\s+you|hurt\s+u|beat\s+you|die\s+bitch|"
+    r"fuck\s+you|asshole|stfu)\b",
+    re.IGNORECASE,
+)
+
+SELF_HARM_PATTERN = re.compile(
+    r"\b(kill\s+myself|suicide|commit\s+suicide|end\s+my\s+life|want\s+to\s+die|"
+    r"slit\s+my\s+wrist|hang\s+myself|overdose\s+myself)\b",
+    re.IGNORECASE,
+)
+
+# Short words that require whole-word exact matching (prevents 'kill' matching 'ill', 'warm' matching 'arm')
+EXACT_CLINICAL_WORDS = {
+    "ill", "sick", "hurt", "pain", "ache", "sore", "rash", "weak", "burn", "itch",
+    "numb", "cold", "flu", "wound", "cramp", "stiff", "lump", "mass", "faint", "ear",
+    "eye", "mouth", "tongue", "tooth", "teeth", "neck", "back", "spine", "arm", "leg",
+    "foot", "feet", "hand", "finger", "toe", "skin", "heart", "lung", "liver", "kidney",
+    "bladder", "bowel", "colon", "blood", "pulse", "bp", "sugar", "glucose", "gout",
+    "clot", "cyst", "bile", "vein", "gut", "rib", "jaw", "knee", "hip", "bone", "lip",
+    "gum", "sinus"
 }
+
+# Medical prefixes/stems (>= 4 chars) where prefix matching (w.startswith(p)) is safe
+CLINICAL_PREFIXES = {
+    "fever", "cough", "vomit", "nausea", "fatigue", "tired", "breath", "dyspnea",
+    "chest", "headach", "abdom", "stomach", "throat", "injury", "seizur", "palpitat",
+    "tingl", "chill", "diarrh", "constipat", "lesion", "discharg", "vision", "infect",
+    "pressur", "spasm", "trauma", "bruis", "joint", "muscle", "swoll", "edema",
+    "syncope", "erythem", "wheez", "hemopt", "jaundic", "cardia", "pulmon", "renal",
+    "urolo", "neuro", "dermat", "gastro", "endocr", "hemat", "pediatr", "geriatr",
+    "syndrom", "diseas", "disorder", "diagnos", "symptom", "triage", "hyper", "hypo",
+    "anemi", "arrhythm", "tachy", "brady", "hyperten", "hypoten", "inflamm", "allerg",
+    "fractur", "sprain", "hemorrh", "bleed", "dizz"
+}
+
+# Backward compatibility alias for tests
+CLINICAL_STEMS = EXACT_CLINICAL_WORDS | CLINICAL_PREFIXES
 
 NON_CLINICAL_PATTERNS = [
     r"^(hi|hello|hey|greetings|howdy|good\s+morning|good\s+afternoon|good\s+evening)\b",
@@ -47,19 +74,66 @@ def emergency_message(question: str) -> Optional[str]:
     return None
 
 
+def check_safety_violation(text: str) -> Optional[str]:
+    """Deterministically intercept threats, violent language, or self-harm in < 0.1ms."""
+    clean = text.strip()
+    if not clean:
+        return None
+
+    if SELF_HARM_PATTERN.search(clean):
+        return (
+            "> [!CAUTION]\n"
+            "> **Immediate Crisis Support & Safety Assistance**\n\n"
+            "If you or someone you know is experiencing thoughts of self-harm or suicide, please connect with emergency support immediately:\n"
+            "- **In the US / Canada**: Call or text **988** for the Suicide & Crisis Lifeline (free, confidential, 24/7).\n"
+            "- **In the UK**: Call **111** or reach Samaritans at **116 123**.\n"
+            "- **In India**: Call **112** (Emergency) or **9152987821** (KIRAN Mental Health Helpline).\n"
+            "- **Worldwide**: Contact your nearest emergency department or local emergency services immediately.\n\n"
+            "PreDoc AI is an informational clinical decision support tool and cannot provide crisis or mental health emergency interventions."
+        )
+
+    if THREAT_OR_VIOLENCE_PATTERN.search(clean):
+        return (
+            "> [!WARNING]\n"
+            "> **Safety Policy Notice: Threatening or Violent Language Prohibited**\n\n"
+            "PreDoc AI is a professional clinical decision support and medical triage reference system. "
+            "Threats of violence, abusive language, and non-clinical hostile inputs are strictly prohibited.\n\n"
+            "To receive medical triage and diagnostic guidance, please describe authentic clinical symptoms, for example:\n"
+            "- *\"Substernal chest tightness with diaphoresis for 45 minutes\"*\n"
+            "- *\"High fever, productive cough, and chills for 3 days\"*\n"
+            "- *\"Sudden onset unilateral facial weakness and slurred speech\"*"
+        )
+
+    return None
+
+
 def is_clinical_query(text: str) -> bool:
     """Validate whether input describes clinical signs, symptoms, anatomy, or diagnostic inquiries."""
     clean = text.strip().lower()
     if not clean:
         return False
 
+    # Immediate rejection if safety violation detected
+    if check_safety_violation(clean):
+        return False
+
+    words = re.findall(r"\w+", clean)
+    if not words:
+        return False
+
     # Check for direct conversational chatter
     for pat in NON_CLINICAL_PATTERNS:
         if re.search(pat, clean):
-            words = re.findall(r"\w+", clean)
-            if not any(any(w.startswith(s) or s in w for s in CLINICAL_STEMS) for w in words):
+            # Only consider clinical if it also contains valid clinical terms
+            has_clinical = any(
+                w in EXACT_CLINICAL_WORDS or any(w.startswith(p) for p in CLINICAL_PREFIXES)
+                for w in words
+            )
+            if not has_clinical:
                 return False
 
-    # Check if query contains any clinical, anatomical, or symptom stems
-    words = re.findall(r"\w+", clean)
-    return any(any(w.startswith(s) or s in w for s in CLINICAL_STEMS) for w in words)
+    # Strict token-level matching: exact for short words, prefix for long medical stems
+    return any(
+        w in EXACT_CLINICAL_WORDS or any(w.startswith(p) for p in CLINICAL_PREFIXES)
+        for w in words
+    )

@@ -112,7 +112,7 @@ PRIMARY_API_KEY = (
 
 PRIMARY_LLM_MODEL = os.getenv(
     "PRIMARY_LLM_MODEL",
-    os.getenv("DEFAULT_LLM_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b"),
+    os.getenv("DEFAULT_LLM_MODEL", "meta/llama-3.2-11b-vision-instruct"),
 )
 PRIMARY_EMBEDDING_MODEL = os.getenv("PRIMARY_EMBEDDING_MODEL", "nvidia/nemotron-3-embed-1b")
 PRIMARY_EMBEDDING_DIM = int(os.getenv("PRIMARY_EMBEDDING_DIM", "2048"))
@@ -131,7 +131,7 @@ FALLBACK_API_KEY = (
     or (get_secret("openrouter_key", "OPENROUTER_API_KEY", default="") if PRIMARY_API_KEY != get_secret("openrouter_key", "OPENROUTER_API_KEY", default="") else "")
 ).strip()
 
-FALLBACK_LLM_MODEL = os.getenv("SECONDARY_LLM_MODEL", os.getenv("FALLBACK_LLM_MODEL", "liquid/lfm-2.5-2.6b:free"))
+FALLBACK_LLM_MODEL = os.getenv("SECONDARY_LLM_MODEL", os.getenv("FALLBACK_LLM_MODEL", "meta/llama-3.3-70b-instruct"))
 FALLBACK_EMBEDDING_MODEL = os.getenv("SECONDARY_EMBEDDING_MODEL", os.getenv("FALLBACK_EMBEDDING_MODEL", "liquid/lfm-2.5-embedding-350m:free"))
 FALLBACK_EMBEDDING_DIM = int(os.getenv("SECONDARY_EMBEDDING_DIM", os.getenv("FALLBACK_EMBEDDING_DIM", "1024")))
 

@@ -183,8 +183,8 @@ class GenericOpenAIClient:
         fallback_model: Optional[str] = None,
         api_keys: Optional[List[str]] = None,
         models: Optional[List[str]] = None,
-        base_timeout: float = 40.0,
-        max_retries: int = 3,
+        base_timeout: float = 4.0,
+        max_retries: int = 1,
         **legacy_kwargs,
     ):
         from backend.config import get_secret
@@ -252,16 +252,16 @@ class GenericOpenAIClient:
             fallback_embedding_dim
             or os.getenv("FALLBACK_EMBEDDING_DIM", "1024")
         )
-        self.fallback_model = (
+        fallback_model = (
             fallback_model
             or os.getenv("FALLBACK_LLM_MODEL", "google/gemma-4-26b-a4b-it:free")
         )
 
-        self.base_timeout = base_timeout
+        self.base_timeout = 8.0
         self.max_retries = max_retries
         self.models = models or FREE_MODELS
 
-        # Initialize Primary standard OpenAI client
+        # Initialize Primary standard OpenAI client (max_retries=0 so failover is fast)
         p_headers = {}
         if "openrouter" in self.primary_base_url:
             p_headers = {"HTTP-Referer": "https://predoc.ai", "X-Title": "PreDoc Clinical Assistant"}
@@ -270,7 +270,7 @@ class GenericOpenAIClient:
             base_url=self.primary_base_url,
             api_key=self.primary_key or "sk-dummy",
             timeout=self.base_timeout,
-            max_retries=self.max_retries,
+            max_retries=0,
             default_headers=p_headers if p_headers else None,
         )
 
@@ -413,17 +413,19 @@ class GenericOpenAIClient:
         temperature: float = 0.2,
         max_tokens: Optional[int] = None,
         preferred_model: Optional[str] = None,
+        model: Optional[str] = None,
         enable_thinking: Optional[bool] = None,
         extra_body: Optional[Dict[str, Any]] = None,
         stream: bool = False,
+        **kwargs,
     ) -> Union[Dict[str, Any], Generator[str, None, None]]:
         """Standard OpenAI Chat Completion with rate limiting, thinking reasoning, and endpoint failover."""
         # Enforce single rate limiter
         self.rate_limiter.acquire(estimated_tokens=max_tokens or 500)
 
-        target_model = preferred_model or (
-            "nvidia/nemotron-3.5-lightning-30b-a3b" if "nvidia" in self.primary_base_url
-            else "google/gemma-4-26b-a4b-it:free"
+        target_model = model or preferred_model or (
+            "meta/llama-3.2-11b-vision-instruct" if "nvidia" in self.primary_base_url
+            else "meta/llama-3.3-70b-instruct"
         )
         spec = self.get_token_limit_for_model(target_model)
         effective_max_tokens = max_tokens or spec["max_output_tokens"]
@@ -439,7 +441,7 @@ class GenericOpenAIClient:
 
         # 1. Attempt via Primary OpenAPI Endpoint
         try:
-            kwargs: Dict[str, Any] = {
+            call_kwargs: Dict[str, Any] = {
                 "model": target_model,
                 "messages": messages,
                 "temperature": temperature,
@@ -447,12 +449,12 @@ class GenericOpenAIClient:
                 "stream": stream,
             }
             if request_extra_body:
-                kwargs["extra_body"] = request_extra_body
+                call_kwargs["extra_body"] = request_extra_body
 
             if stream:
-                return self._stream_generator(self.primary_client, kwargs)
+                return self._stream_generator(self.primary_client, call_kwargs)
 
-            comp = self.primary_client.chat.completions.create(**kwargs)
+            comp = self.primary_client.chat.completions.create(**call_kwargs)
             choice = comp.choices[0]
             msg = choice.message
             content = msg.content or ""
@@ -481,8 +483,24 @@ class GenericOpenAIClient:
         if not self.fallback_client:
             raise RuntimeError(f"Primary endpoint failed on {target_model} and no fallback endpoint is configured.")
 
-        fb_model = self.fallback_model or target_model
-        for attempt in range(3):
+        candidate_fb_models = [m for m in [
+            "meta-llama/llama-3.3-70b-instruct",
+            "meta/llama-3.3-70b-instruct",
+            "meta-llama/llama-3.1-8b-instruct",
+            "meta/llama-3.1-8b-instruct",
+            self.fallback_model if not "vision" in (self.fallback_model or "") else None,
+            "google/gemma-3-12b-it",
+            "google/gemma-4-26b-a4b-it:free",
+            "liquid/lfm-2.5-2.6b:free",
+        ] if m]
+        seen_models = set()
+        fallback_models_queue = []
+        for m in candidate_fb_models:
+            if m not in seen_models:
+                seen_models.add(m)
+                fallback_models_queue.append(m)
+
+        for fb_model in fallback_models_queue:
             try:
                 fb_comp = self.fallback_client.chat.completions.create(
                     model=fb_model,
@@ -501,12 +519,11 @@ class GenericOpenAIClient:
                     "raw": fb_comp.model_dump() if hasattr(fb_comp, "model_dump") else str(fb_comp),
                 }
             except RateLimitError:
-                backoff = (2 ** attempt) + random.uniform(0.5, 1.5)
-                logger.warning(f"Fallback endpoint 429 on {fb_model}. Retrying in {backoff:.2f}s...")
-                time.sleep(backoff)
+                logger.warning(f"Fallback endpoint 429 on {fb_model}, advancing fallback queue...")
+                continue
             except Exception as fb_exc:
                 logger.warning(f"Fallback endpoint error on {fb_model}: {fb_exc}")
-                break
+                continue
 
         raise RuntimeError(f"All configured OpenAPI endpoints failed for request.")
 

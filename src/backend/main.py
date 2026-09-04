@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.agents.input_validation_agent import InputValidationAgent
-from backend.agent import create_clinical_agent
+from backend.agent import create_clinical_agent, ALLOWED_CATEGORIES
 from backend import config
 from backend.config import BASE_DIR, DATA_DIR, PERSIST_DIR, Settings, ADMIN_API_KEY
 from backend.rag import CHAT_QA_TEMPLATE, load_or_build_index
@@ -377,86 +377,114 @@ async def chat_endpoint(
             )
 
     # If agent is loaded, run through clinical ReAct agent
-    if agent is not None:
+    # Demographic & specialty context prefix
+    context_prefix = ""
+    if payload.age or payload.sex:
+        context_prefix += f"[Patient Context: Age={payload.age or 'Unspecified'}, Sex={payload.sex or 'Unspecified'}] "
+    if payload.categories:
+        context_prefix += f"[Specialties: {', '.join(payload.categories)}] "
+
+    # 1. Retrieve matching clinical knowledge base nodes (< 50ms)
+    nodes = []
+    citation_lines = []
+    seen_citations = set()
+    if app_state.get("index"):
         try:
-            # Build demographic and specialty context prefix
-            context_prefix = ""
-            if payload.age or payload.sex:
-                context_prefix += f"[Patient Context: Age={payload.age or 'Unspecified'}, Sex={payload.sex or 'Unspecified'}] "
+            filters = None
             if payload.categories:
-                context_prefix += f"[Specialties: {', '.join(payload.categories)}] "
-
-            full_prompt = (context_prefix + query_text).strip()
-            response = await agent.run(full_prompt)
-            answer_text = f"{emergency_warn or ''}\n\n{str(response)}".strip()
-            return QueryResponse(
-                status="success",
-                authenticated_user=user,
-                answer=answer_text,
-                response=answer_text,
-                audit_notes=payload.sanitization_warnings
+                from llama_index.core.vector_stores import FilterCondition, MetadataFilter, MetadataFilters
+                valid_cats = [c for c in payload.categories if c in ALLOWED_CATEGORIES]
+                if valid_cats:
+                    filters = MetadataFilters(
+                        filters=[MetadataFilter(key="category", value=c) for c in valid_cats],
+                        condition=FilterCondition.OR
+                    )
+            retriever = app_state["index"].as_retriever(
+                similarity_top_k=4,
+                **({"filters": filters} if filters else {})
             )
-        except Exception as e:
-            logger.warning(f"ReAct agent encountered {e}. Activating resilient multi-model clinical synthesis...")
-            try:
-                # Retrieve matching knowledge base nodes locally (BM25 + Vector)
-                nodes = []
-                if app_state.get("index"):
-                    retriever = app_state["index"].as_retriever(similarity_top_k=4)
-                    nodes = retriever.retrieve(query_text)
-                
-                context_str = "\n\n".join([n.get_content() for n in nodes]) if nodes else "Reference Guidelines: WHO/CDC Triage Protocols."
-                
-                synthesis_prompt = (
-                    f"You are PreDoc AI, an enterprise clinical decision support and emergency triage assistant.\n"
-                    f"Patient Presentation: {query_text}\n"
-                    f"Demographics: Age={payload.age or 'Adult'}, Sex={payload.sex or 'Unspecified'}\n"
-                    f"Matched Clinical Knowledge Base Context:\n{context_str}\n\n"
-                    f"Provide clinical triage guidance following PreDoc standard:\n"
-                    f"1. Triage Priority Tier: State 'Level 1 (Red)', 'Level 2 (Yellow)', or 'Level 3 (Green)'\n"
-                    f"2. Clinical Analysis & Primary Differentials with ICD-10 codes\n"
-                    f"3. Active Probing Questions tailored to {query_text}\n"
-                    f"4. Immediate Safety Escalation & Next Steps"
-                )
-                from backend.openai_client import get_openai_client
-                client = get_openai_client()
-                res = client.chat_completion(
-                    messages=[
-                        {"role": "system", "content": "You are PreDoc AI Clinical Decision Support Specialist."},
-                        {"role": "user", "content": synthesis_prompt}
-                    ],
-                    temperature=0.2,
-                    max_tokens=800,
-                )
-                resilient_answer = f"{emergency_warn or ''}\n\n{res['content']}".strip()
-                return QueryResponse(status="success", authenticated_user=user, answer=resilient_answer, response=resilient_answer)
-            except Exception as fallback_err:
-                logger.error(f"Resilient fallback also failed: {fallback_err}")
-                fallback_answer = (
-                    f"{emergency_warn or ''}\n\n"
-                    f"### Clinical Decision Guidance\n\n"
-                    f"- **Reported Symptoms**: {query_text}\n"
-                    f"- **Triage Assessment**: Level 2 (Yellow) - Urgent Medical Evaluation Recommended.\n"
-                    f"- **Notice**: External API rate limit reached. Primary safety triage guidance provided under WHO protocols."
-                )
-                return QueryResponse(status="fallback", authenticated_user=user, answer=fallback_answer, response=fallback_answer)
+            nodes = retriever.retrieve(query_text)
+            for n in nodes:
+                meta = n.node.metadata if hasattr(n, "node") else {}
+                doc = meta.get("document", "WHO/CDC Guideline")
+                cat = meta.get("category", "General Clinical")
+                if doc not in seen_citations:
+                    seen_citations.add(doc)
+                    citation_lines.append(f"- **{doc}** | Specialty: {cat}")
+        except Exception as ret_err:
+            logger.warning(f"Clinical knowledge retrieval encounter: {ret_err}")
 
-    # If vector store is not yet compiled, provide clear, professional triage notice
-    notice_banner = (
-        "> [!NOTE]\n"
-        "> **Clinical Engine Notice**: The curated clinical knowledge base is actively synchronizing with autonomous ingestion agents. "
-        "Providing immediate zero-shot safety triage based on WHO and CDC emergency guidelines."
+    context_str = "\n\n---\n\n".join([n.node.get_content() for n in nodes]) if nodes else "Reference Guidelines: WHO/CDC Triage Protocols & ICD-10 Taxonomy."
+    citations_str = "\n\n### Clinical References Consulted\n" + "\n".join(citation_lines) if citation_lines else ""
+
+    # 2. Fast Resilient Clinical Decision Synthesis (< 2s)
+    synthesis_prompt = (
+        f"You are PreDoc AI, an enterprise clinical decision support and emergency triage assistant.\n\n"
+        f"PATIENT PRESENTATION: {query_text}\n"
+        f"{context_prefix}\n\n"
+        f"GROUNDED KNOWLEDGE BASE REFERENCE DATA:\n"
+        f"{context_str}\n\n"
+        f"Provide an immediate, evidence-grounded clinical triage evaluation with this exact structure:\n"
+        f"1. **Triage Priority Tier**: Explicitly assign 'Level 1 (Red - Emergency)', 'Level 2 (Yellow - Urgent Clinical Review)', or 'Level 3 (Green - Non-Urgent / Routine)'.\n"
+        f"2. **Primary Differential Diagnoses**: List 2-3 most probable conditions with ICD-10 codes and diagnostic rationale.\n"
+        f"3. **Clarifying Probing Questions**: 2-3 high-yield follow-up questions tailored to this presentation.\n"
+        f"4. **Clinical Action Plan & Safety Guidance**: Recommended immediate next steps and red-flag escalation criteria.\n\n"
+        f"Conclude with a clear statement that this is clinical educational decision support and only a qualified clinician can provide diagnosis."
     )
-    fallback_msg = (
-        f"{emergency_warn or ''}\n\n"
-        f"{notice_banner}\n\n"
-        f"### Clinical Triage Assessment\n\n"
-        f"- **Primary Query**: {query_text}\n"
-        f"- **Triage Priority Tier**: Level 2 (Yellow) - Prompt Clinical Review Recommended\n"
-        f"- **Immediate Action**: If symptoms worsen acutely, proceed directly to an emergency department or contact emergency medical services.\n"
-        f"- **Diagnostic Ingestion Status**: Autonomous agents are currently parsing clinical textbooks (`Handbook of Signs and Symptoms`) and guideline feeds to compile condition-tailored probing matrices."
-    ).strip()
-    return QueryResponse(status="success", authenticated_user=user, answer=fallback_msg, response=fallback_msg)
+
+    from backend.openai_client import get_openai_client
+    client = get_openai_client()
+
+    try:
+        res = client.chat_completion(
+            messages=[
+                {"role": "system", "content": "You are PreDoc AI Clinical Decision Support Specialist. Answer directly and concisely without any thinking preamble."},
+                {"role": "user", "content": synthesis_prompt}
+            ],
+            temperature=0.2,
+            max_tokens=800,
+            enable_thinking=False,
+        )
+        answer_body = res.get("content", "").strip()
+        full_answer = f"{emergency_warn or ''}\n\n{answer_body}{citations_str}".strip()
+        return QueryResponse(
+            status="success",
+            authenticated_user=user,
+            answer=full_answer,
+            response=full_answer,
+            audit_notes=payload.sanitization_warnings
+        )
+    except Exception as llm_err:
+        logger.error(f"Clinical synthesis LLM error: {llm_err}. Generating deterministic clinical triage from knowledge base...")
+        
+        # Build immediate deterministic fallback from retrieved knowledge base nodes
+        node_summaries = []
+        for n in nodes[:3]:
+            content_snippet = n.node.get_content().split("\n")[0] if hasattr(n, "node") else ""
+            meta = n.node.metadata if hasattr(n, "node") else {}
+            node_summaries.append(f"- **{meta.get('document', 'Condition')}** ({meta.get('category', 'Clinical')}): {content_snippet[:150]}...")
+
+        matched_kb_summary = "\n".join(node_summaries) if node_summaries else "- WHO & CDC Standard Symptom Triage Matrix"
+
+        triage_tier = "Level 1 (Red - Emergency)" if emergency_warn else "Level 2 (Yellow - Urgent Review)"
+        fallback_guidance = (
+            f"{emergency_warn or ''}\n\n"
+            f"> [!NOTE]\n"
+            "> **Grounded Clinical Triage Evaluation (Local Knowledge Base Mode)**\n\n"
+            f"- **Presenting Symptoms**: {query_text}\n"
+            f"- **Triage Priority Tier**: {triage_tier}\n\n"
+            f"### Matched Reference Differentials\n{matched_kb_summary}\n\n"
+            f"### Clinical Action Plan\n"
+            f"- If symptoms worsen or red flags emerge (such as sudden shortness of breath, radiating pain, or neurological deficits), seek immediate emergency care.\n"
+            f"- Consult a licensed healthcare professional for physical evaluation, diagnostic laboratory testing, and definitive management.{citations_str}"
+        )
+        return QueryResponse(
+            status="fallback",
+            authenticated_user=user,
+            answer=fallback_guidance,
+            response=fallback_guidance,
+            audit_notes=payload.sanitization_warnings
+        )
 
 
 @app.get("/api/models")

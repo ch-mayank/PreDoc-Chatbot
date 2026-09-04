@@ -9,9 +9,44 @@ from typing import Any
 from llama_index.core.agent.workflow import ReActAgent
 from llama_index.core.tools import FunctionTool
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.retrievers import BaseRetriever, QueryFusionRetriever
+from llama_index.core.schema import NodeWithScore, QueryBundle
 from llama_index.core.vector_stores import FilterCondition, MetadataFilter, MetadataFilters
-from llama_index.retrievers.bm25 import BM25Retriever
+
+try:
+    from llama_index.retrievers.bm25 import BM25Retriever
+except (ImportError, ModuleNotFoundError):
+    BM25Retriever = None
+
+
+class SimpleKeywordRetriever(BaseRetriever):
+    """Fast, dependency-free in-memory keyword retriever for clinical knowledge nodes."""
+
+    def __init__(self, nodes: list, similarity_top_k: int = 5):
+        super().__init__()
+        self._nodes = nodes
+        self._similarity_top_k = similarity_top_k
+        self._node_tokens = []
+        import re
+        for n in nodes:
+            text = (n.get_content() + " " + " ".join(str(v) for v in n.metadata.values())).lower()
+            tokens = set(re.findall(r"\w+", text))
+            self._node_tokens.append((n, tokens))
+
+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        import re
+        q_tokens = set(re.findall(r"\w+", query_bundle.query_str.lower()))
+        if not q_tokens:
+            return [NodeWithScore(node=n, score=1.0) for n, _ in self._node_tokens[:self._similarity_top_k]]
+        
+        scored = []
+        for node, tokens in self._node_tokens:
+            overlap = len(q_tokens & tokens)
+            if overlap > 0:
+                scored.append(NodeWithScore(node=node, score=float(overlap)))
+        
+        scored.sort(key=lambda x: x.score, reverse=True)
+        return scored[:self._similarity_top_k]
 
 
 ALLOWED_CATEGORIES = {
@@ -45,6 +80,14 @@ def create_clinical_agent(
     if retrieval_mode not in {"hybrid", "dense", "keyword"}:
         raise ValueError("retrieval_mode must be hybrid, dense, or keyword")
 
+    def _build_keyword_retriever(nodes: list, top_k: int = 5):
+        if BM25Retriever is not None:
+            try:
+                return BM25Retriever.from_defaults(nodes=nodes, similarity_top_k=top_k)
+            except Exception:
+                pass
+        return SimpleKeywordRetriever(nodes=nodes, similarity_top_k=top_k)
+
     async def search_medical_reference(question: str, categories: list[str]) -> str:
         """Search all or selected WHO, CDC, and ICD-10 reference categories."""
         selected_categories = [
@@ -63,16 +106,15 @@ def create_clinical_agent(
             else None
         )
 
-        # Vector search understands meaning. BM25 search catches exact medical
-        # words. Combining both is more reliable for names and symptoms.
+        # Vector search understands meaning. Keyword search catches exact medical words.
         vector_retriever = index.as_retriever(
             similarity_top_k=5,
             **({"filters": metadata_filters} if metadata_filters else {}),
         )
-        # Cache global BM25 retriever on index to prevent rebuilding index on every call
+        # Cache global keyword retriever on index to prevent rebuilding index on every call
         if not hasattr(index, "_cached_bm25"):
             all_nodes = list(index.docstore.docs.values())
-            index._cached_bm25 = BM25Retriever.from_defaults(nodes=all_nodes, similarity_top_k=5)
+            index._cached_bm25 = _build_keyword_retriever(nodes=all_nodes, top_k=5)
 
         if selected_categories:
             all_nodes = list(index.docstore.docs.values())
@@ -81,8 +123,8 @@ def create_clinical_agent(
                 for node in all_nodes
                 if node.metadata.get("category") in selected_categories
             ]
-            keyword_retriever = BM25Retriever.from_defaults(
-                nodes=filtered_nodes, similarity_top_k=5
+            keyword_retriever = _build_keyword_retriever(
+                nodes=filtered_nodes, top_k=5
             )
         else:
             keyword_retriever = index._cached_bm25
