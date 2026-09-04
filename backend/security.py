@@ -139,11 +139,7 @@ def verify_api_key(
             return token
 
     # 4. Standard OpenAPI format keys (nvapi-, sk-, sk-or-)
-    if (token.startswith("nvapi-") or token.startswith("sk-") or token.startswith("sk-or-")) and len(token) > 15:
-        return token
-
-    # 5. Generic authorized API token (minimum 6 chars)
-    if len(token) >= 6:
+    if (token.startswith("nvapi-") or token.startswith("sk-") or token.startswith("sk-or-")) and len(token) > 20:
         return token
 
     raise HTTPException(
