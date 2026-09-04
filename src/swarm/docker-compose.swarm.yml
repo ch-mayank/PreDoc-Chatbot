@@ -1,0 +1,98 @@
+version: "3.8"
+
+# ==============================================================================
+# PreDoc AI: Production Multi-Container Docker Swarm Orchestration
+# Target: Full-Stack AI Solutions Founder / Solo Architect
+# Topology:
+#   - predoc-app: Core clinical decision support engine (FastAPI + LlamaIndex + Hybrid Search)
+#   - predoc-tunnel: Cloudflare Zero-Trust edge ingress sidecar (zero open inbound ports)
+#   - predoc-secrets: Read-only cryptographic Swarm secrets (/run/secrets/*)
+#   - predoc-mesh: Encrypted internal overlay network
+# ==============================================================================
+
+services:
+  app:
+    image: predoc-app:beta
+    networks:
+      - predoc-mesh
+    ports:
+      - "8010:8010"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    secrets:
+      - source: primary_api_key
+        mode: 0444
+      - source: nvidia_api_key
+        mode: 0444
+      - source: openrouter_key
+        mode: 0444
+      - source: admin_user
+        mode: 0444
+      - source: admin_pass
+        mode: 0444
+      - source: clinical_api_key
+        mode: 0444
+      - source: admin_api_key
+        mode: 0444
+    volumes:
+      - /mnt/data/work/work-config/PreDoc-Chatbot/storage:/app/storage
+      - /mnt/data/work/work-config/PreDoc-Chatbot/data:/app/data
+      - /mnt/data/work/work-secrets:/mnt/data/work/work-secrets:ro
+    environment:
+      - APP_ENV=production
+      - RETRIEVAL_MODE=hybrid
+      - PYTHONUNBUFFERED=1
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    networks:
+      - predoc-mesh
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+    command: tunnel --no-autoupdate run --url http://app:8010
+
+networks:
+  predoc-mesh:
+    driver: overlay
+    attachable: true
+
+secrets:
+  primary_api_key:
+    external: true
+  nvidia_api_key:
+    external: true
+  openrouter_key:
+    external: true
+  admin_user:
+    external: true
+  admin_pass:
+    external: true
+  clinical_api_key:
+    external: true
+  admin_api_key:
+    external: true

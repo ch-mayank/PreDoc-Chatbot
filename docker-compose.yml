@@ -28,6 +28,7 @@ services:
     volumes:
       - /mnt/data/work/work-config/PreDoc-Chatbot/storage:/app/storage
       - /mnt/data/work/work-config/PreDoc-Chatbot/data:/app/data
+      - /mnt/data/work/work-secrets:/mnt/data/work/work-secrets:ro
 
   tunnel:
     image: cloudflare/cloudflared:latest
