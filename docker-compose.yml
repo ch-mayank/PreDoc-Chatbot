@@ -1,6 +1,6 @@
 services:
   app:
-    image: predoc-app:latest
+    image: predoc-app:beta
     ports:
       - "8010:8010"
     deploy:

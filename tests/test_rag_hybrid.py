@@ -3,7 +3,7 @@
 import unittest
 from llama_index.core.schema import TextNode
 
-from backend.openrouter_client import OpenRouterResilientClient, FREE_MODELS
+from backend.openai_client import GenericOpenAIClient, FREE_MODELS
 from backend.rag import ClinicalHybridRetriever, create_hybrid_retriever
 
 
@@ -42,8 +42,8 @@ class TestHybridRAGAndClient(unittest.TestCase):
         self.assertIsInstance(retriever, ClinicalHybridRetriever)
         self.assertEqual(retriever.similarity_top_k, 3)
 
-    def test_openrouter_client_initialization(self):
-        client = OpenRouterResilientClient(api_keys=["test-key-1", "test-key-2"])
+    def test_generic_openai_client_legacy_init(self):
+        client = GenericOpenAIClient(api_keys=["test-key-1", "test-key-2"])
         self.assertEqual(len(client.api_keys), 2)
         self.assertEqual(client.models, FREE_MODELS)
         self.assertEqual(client.models[0], "google/gemma-4-26b-a4b-it:free")
